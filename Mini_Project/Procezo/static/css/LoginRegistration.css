@@ -1,0 +1,550 @@
+/* -----------------------------------------------------------
+   FONT IMPORTS
+----------------------------------------------------------- */
+
+/* Poppins - Main UI font */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+/* Kaushan Script - Headings / Logo styling font */
+@import url("https://fonts.googleapis.com/css?family=Kaushan+Script");
+
+/* Inter - Optional body font */
+@import url("https://fonts.googleapis.com/css?family=Inter");
+
+
+
+/* -----------------------------------------------------------
+   GLOBAL RESET
+   - Removes default padding/margin
+   - Sets global font & prevents list styles
+----------------------------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+  text-decoration: none;
+  list-style: none;
+}
+
+
+
+/* -----------------------------------------------------------
+   BODY STYLING
+   - Centers main container
+   - Applies background gradient
+----------------------------------------------------------- */
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(90deg, #e2e2e2, #c9d6ff);
+}
+
+
+
+/* -----------------------------------------------------------
+   MAIN CONTAINER
+   - Holds login/register panels
+   - Adds rounded corner + shadow
+----------------------------------------------------------- */
+.container {
+  position: relative;
+  width: 850px;
+  height: 700px;
+  background: #162A38;
+  margin: 20px;
+  border-radius: 30px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+
+
+/* -----------------------------------------------------------
+   HEADING + PARAGRAPH STYLES
+----------------------------------------------------------- */
+.container h2 {
+  margin: -10px 0;
+  font-family: 'Kaushan Script';
+  font-size: 48px;
+  font-weight: 400;
+  word-wrap: break-word;
+}
+
+.container p {
+  font-size: 14.5px;
+  margin: 15px 0;
+}
+
+
+
+/* -----------------------------------------------------------
+   FORM GENERAL STYLING
+----------------------------------------------------------- */
+form {
+  width: 100%;
+}
+
+
+
+/* -----------------------------------------------------------
+   LOGIN / REGISTER BOX
+   - Positioned on right side
+   - Animated when toggling
+----------------------------------------------------------- */
+.form-box {
+  position: absolute;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  background: #162A38;
+  display: flex;
+  align-items: center;
+  color: white;
+  text-align: center;
+  padding: 40px;
+  z-index: 1;
+  transition:
+    0.6s ease-in-out 1.2s,
+    visibility 0s 1s;
+}
+
+/* Moves form left when container becomes active */
+.container.active .form-box {
+  right: 50%;
+}
+
+/* Hide register form at start */
+.form-box.register {
+  visibility: hidden;
+}
+
+/* Reveal register when active */
+.container.active .form-box.register {
+  visibility: visible;
+}
+
+
+
+/* -----------------------------------------------------------
+   INPUT FIELDS
+----------------------------------------------------------- */
+.input-box {
+  position: relative;
+  margin: 30px 0;
+}
+
+.input-box input {
+  width: 100%;
+  padding: 13px 40px 13px 15px;
+  background: #ddd;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #000;
+  font-weight: 500;
+}
+
+.input-box input::placeholder {
+  color: #000;
+  font-weight: 400;
+}
+
+
+
+/* -----------------------------------------------------------
+   (ROLE / JOB TYPE)
+----------------------------------------------------------- */
+.two-input-row {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+.two-input-row input {
+  flex: 1;                 /* makes both equal width */
+  padding: 12px;
+  background-color: #ddd;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #000;
+  min-width: 0;    /* IMPORTANT: prevents overflow */
+  box-sizing: border-box; /* ensures padding stays inside width */
+}
+
+.two-input-row input::placeholder {
+  color: #000;
+  font-weight: 400;
+}
+
+/* -----------------------------------------------------------
+   CAMERA BUTTON (Face Recognition)
+----------------------------------------------------------- */
+.face-recognition {
+  width: 100%;
+  margin: 30px 0;
+}
+
+.face-btn {
+  width: 100%;
+  background: #e4e4e4;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.face-btn img {
+  width: 22px;
+}
+
+.face-btn:hover {
+  background: #d4d4d4;
+}
+
+
+
+/* -----------------------------------------------------------
+   ICONS INSIDE INPUT BOX
+----------------------------------------------------------- */
+.logoIcons {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 25px;
+  height: 25px;
+  pointer-events: none;
+}
+
+
+
+/* -----------------------------------------------------------
+   COMMON BUTTON STYLE
+----------------------------------------------------------- */
+.btn {
+  width: 100%;
+  height: 48px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #162A38;
+  font-weight: 600;
+}
+
+
+
+/* -----------------------------------------------------------
+   TOGGLE BOX (LOGIN <-> REGISTER SWITCH)
+----------------------------------------------------------- */
+.toggle-box {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+/* White curve animation background */
+.toggle-box::before {
+  content: "";
+  position: absolute;
+  left: -250%;
+  width: 300%;
+  height: 100%;
+  background: white;
+  border-radius: 150px;
+  z-index: 2;
+  transition: 1.8s ease-in-out;
+}
+
+/* Slide curve to right when active */
+.container.active .toggle-box::before {
+  left: 50%;
+}
+
+
+
+/* -----------------------------------------------------------
+   LOGO STYLING
+----------------------------------------------------------- */
+.logo {
+  width: 308px;
+  height: 191px;
+  margin-bottom: 50px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+
+/* -----------------------------------------------------------
+   TOGGLE PANELS (LEFT & RIGHT)
+----------------------------------------------------------- */
+.toggle-panel {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  color: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  transition: 0.6s ease-in-out;
+}
+
+/* LEFT PANEL */
+.toggle-panel.toggle-left {
+  left: 0;
+  transition-delay: 1.2s;
+}
+
+.container.active .toggle-panel.toggle-left {
+  left: -50%;
+  transition-delay: 0.6s;
+}
+
+/* RIGHT PANEL */
+.toggle-panel.toggle-right {
+  right: -50%;
+  transition-delay: 0.6s;
+}
+
+.container.active .toggle-panel.toggle-right {
+  right: 0;
+  transition-delay: 1.2s;
+}
+
+.toggle-panel p {
+  margin-bottom: 20px;
+}
+
+/* Button inside toggle panels */
+.toggle-panel .btn {
+  width: 160px;
+  height: 46px;
+  color: white;
+  background: #1B3C53;
+  border: 2px solid #1B3C53;
+  box-shadow: none;
+}
+
+
+
+/* -----------------------------------------------------------
+   CAMERA POPUP (MODAL)
+----------------------------------------------------------- */
+.camera-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    display: none;
+    z-index: 9999;
+    text-align: center;
+}
+
+/* Video & Canvas */
+.camera-box .camera-video,
+.camera-box .camera-canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    background: #000;
+}
+
+/* Capture Button */
+.camera-box .camera-capture-btn {
+    margin-top: 10px;
+    background: green;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Close Button */
+.camera-box .camera-close-btn {
+    margin-top: 10px;
+    background: red;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+
+
+
+/* -----------------------------------------------------------
+   FLASH MESSAGES (DJANGO)
+----------------------------------------------------------- */
+.messages {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+}
+
+.messages li {
+  padding: 0.5rem;
+  background-color: #f8d7da; /* error bg */
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Success message style */
+.messages li.success {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+
+
+/* -----------------------------------------------------------
+   RESPONSIVE STYLES (TABLETS & MOBILE)
+----------------------------------------------------------- */
+
+@media screen and (max-width: 700px) {
+  
+  /* Adjust container height */
+  .container {
+    height: calc(100vh - 40px);
+  }
+
+  /* Form takes bottom area */
+  .form-box {
+    bottom: 0;
+    width: 100%;
+    height: 70%;
+  }
+
+  /* Move form on toggle */
+  .container.active .form-box {
+    right: 0;
+    bottom: 30%;
+  }
+
+  /* Curve scaling */
+  .toggle-box::before {
+    left: 0;
+    top: -270%;
+    width: 100%;
+    height: 300%;
+    border-radius: 20vw;
+  }
+
+  .container.active .toggle-box::before {
+    left: 0;
+    top: 70%;
+  }
+
+  .container.active .toggle-panel.toggle-left {
+    left: 0;
+    top: -30%;
+  }
+
+  /* Panels convert to horizontal layout */
+  .toggle-panel {
+    width: 100%;
+    height: 30%;
+  }
+
+  .toggle-panel.toggle-left {
+    top: 0;
+  }
+
+  .toggle-panel.toggle-right {
+    right: 0;
+    bottom: -30%;
+  }
+
+  .container.active .toggle-panel.toggle-right {
+    bottom: 0;
+  }
+}
+
+
+
+/* -----------------------------------------------------------
+   EXTRA RESPONSIVE — SMALL MOBILES
+----------------------------------------------------------- */
+
+@media (max-width: 700px)  {
+  .container {
+    height: calc(135vh - 60px);
+  }
+
+  .form-box {
+    padding: 50px;
+  }
+
+  .container.active .form-box {
+    right: 0;
+    bottom: 30%;
+  }
+
+  .toggle-panel h1 {
+    font-size: 30px;
+  }
+
+  .logo {
+    display: none;
+  }
+}
+
+
+
+/* -----------------------------------------------------------
+   EXTRA SMALL SCREENS (FINAL BREAKPOINT)
+----------------------------------------------------------- */
+
+@media (max-width: 700px)  {
+  .container {
+    height: calc(155vh - 60px);
+  }
+
+  .form-box {
+    padding: 50px;
+  }
+
+  .container.active .form-box {
+    right: 0;
+    bottom: 30%;
+  }
+
+  /* Dropdowns stack vertically */
+  .two-input-row {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .toggle-panel h1 {
+    font-size: 30px;
+  }
+
+  .logo {
+    display: none;
+  }
+}

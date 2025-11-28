@@ -1,0 +1,8 @@
+django
+python-dotenv
+mysqlclient
+
+numpy
+pillow
+torch
+facenet-pytorch

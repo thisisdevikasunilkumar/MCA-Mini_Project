@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login/Registration Form</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'image/procezo-title-logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/LoginRegistration.css' %}">
+  </head>
+
+  <body>
+    <div class="container">
+
+      <!-- LOGIN BOX -->
+      <div class="form-box login">
+        <form id="login-form" method="POST" action="#">
+            {% csrf_token %}
+
+          {% if messages %}
+            <ul class="messages">
+              {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+          <h1>Login</h1>
+
+          <!-- Email -->
+          <div class="input-box">
+            <input id="login-email" type="email" placeholder="user@gmail.com" required />
+            <img class="logoIcons" src="{% static 'image/login_register/communication.png' %}">
+          </div>
+
+          <!-- Password -->
+          <div class="input-box">
+            <input id="login-password" type="password" placeholder="Password" required />
+            <img class="logoIcons" src="{% static 'image/login_register/padlock.png' %}">
+          </div>
+
+          <!-- Face Button -->
+          <div class="face-recognition">
+            <button type="button" id="open-camera-btn-login" class="face-btn">
+              <img src="{% static 'image/login_register/face recognition.png' %}"> Face recognition
+            </button>
+          </div>
+
+          <button type="submit" class="btn">Login</button>
+        </form>
+      </div>
+
+      <!-- REGISTRATION BOX -->
+      <div class="form-box register">
+        <form id="register-form" action="{% url 'accounts:register_staff' %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          {% if messages %}
+            <ul class="messages">
+              {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+          <h1>Registration</h1>
+
+          <!-- Staff ID -->
+          <div class="input-box">
+            <input id="reg-staff-id" type="text" name="staff_ID" placeholder="Staff ID" required />
+            <img class="logoIcons" src="{% static 'image/login_register/staff_id.png' %}">
+          </div>
+
+          <!-- Name -->
+          <div class="input-box">
+            <input id="reg-name" type="text" name="name" placeholder="Username" required readonly/>
+            <img class="logoIcons" src="{% static 'image/login_register/user.png' %}">
+          </div>
+
+          <!-- Email -->
+          <div class="input-box">
+            <input id="reg-email" type="email" name="email" placeholder="user@gmail.com" required readonly/>
+            <img class="logoIcons" src="{% static 'image/login_register/communication.png' %}">
+          </div>
+
+          <!-- Role + Job -->
+          <div class="two-input-row">
+            <input id="reg-role" type="text" name="role" placeholder="Role" required readonly/>
+            <input id="reg-job" type="text" name="job_type" placeholder="Job Type" required readonly/>
+          </div>    
+          
+          <!-- Password -->
+          <div class="input-box">
+            <input type="password" name="password" placeholder="Password" required />
+            <img class="logoIcons" src="{% static 'image/login_register/padlock.png' %}">
+          </div>
+
+          <!-- Face Capture -->
+          <div class="face-recognition">
+            <button type="button" id="open-camera-btn-register" class="face-btn">
+              <img src="{% static 'image/login_register/face recognition.png' %}"> Face recognition
+            </button>
+          </div>
+
+          <!-- Hidden captured image -->
+          <input type="hidden" id="captured-image-input" name="image">
+
+          <button type="submit" class="btn">Register</button>
+        </form>
+      </div>
+
+      <!-- TOGGLE PANELS -->
+      <div class="toggle-box">
+        <div class="toggle-panel toggle-left">
+          <img src="{% static 'image/procezo-main-logo.png' %}" class="logo">
+          <h2>Hello, Welcome!</h2>
+          <p>Don't have an account?</p>
+          <button class="btn register-btn">Register</button>
+        </div>
+
+        <div class="toggle-panel toggle-right">
+          <img src="{% static 'image/procezo-main-logo.png' %}" class="logo">
+          <h2>Welcome Back!</h2>
+          <p>Already have an account?</p>
+          <button class="btn login-btn">Login</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAMERA POPUP -->
+    <div id="camera-box" class="camera-box">
+      <h3>Camera Preview</h3>
+
+      <video id="video" class="camera-video" autoplay playsinline muted></video>
+      <canvas id="canvas" class="camera-canvas" style="display:none;"></canvas>
+
+      <button id="camera-capture-Image" class="camera-capture-btn">Capture Image</button>
+      <button id="camera-close" class="camera-close-btn">Close</button>
+    </div>
+
+    <script src="{% static 'js/LoginRegistration.js' %}"></script>
+  </body>
+</html>
