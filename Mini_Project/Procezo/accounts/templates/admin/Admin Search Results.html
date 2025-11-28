@@ -1,0 +1,51 @@
+{% extends 'admin/Admin Dashboard.html' %}
+{% load static %}
+
+{% block title %}Staff Search Results{% endblock %}
+
+{% block extrastyle %}
+<!-- Dashboard base CSS -->
+<link rel="stylesheet" href="{% static 'css/admin/AdminDashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<!-- Include additional CSS -->
+<link rel="stylesheet" href="{% static 'css/admin/AdminSearchResults.css' %}">
+
+<div class="main">
+    <div class="container">
+        <h2>Search Results for: "{{ query }}"</h2>
+        <a href="{% url 'accounts:admin_dashboard' %}">
+            <button class="view-btn">Back to Dashboard</button>
+        </a>
+        {% if results %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Staff ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Job Type</th>
+                    <th>Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in results %}
+                <tr>
+                    <td>{{ staff.staff_id }}</td>
+                    <td>{{ staff.name }}</td>
+                    <td>{{ staff.email }}</td>
+                    <td>{{ staff.role }}</td>
+                    <td>{{ staff.job_type }}</td>
+                    <td>{{ staff.created_at|date:"Y-m-d" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No matching staff found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

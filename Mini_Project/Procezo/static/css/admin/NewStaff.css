@@ -1,0 +1,386 @@
+/* ===================== Variables ===================== */
+:root {
+  --sidebar-w: 260px;
+  --card-bg: #ffffff;
+  --text-dark: #222;
+  --radius: 12px;
+  --shadow: 0 6px 18px rgba(15, 15, 15, 0.12);
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Use box-sizing globally for layout predictability */
+.main, .container, .card, .personal, .profile-circle, .form-row, .actions {
+  box-sizing: border-box;
+}
+
+/* ===================== Layout Styles ===================== */
+.main {
+  flex: 1;
+  padding: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+}
+
+.container {
+  width: 1200px;
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 28px 36px;
+  box-shadow: var(--shadow);
+  border: 1px solid #f1f1f1;
+}
+
+.container h2 {
+  margin: 8px 0 4px 0;
+  font-size: 35px;
+}
+
+.container p {
+  margin: 0 0 18px 0;
+  color: #6a6a6a;
+}
+
+.back-btn {
+    float: right;
+    background: #ffb74d;
+    color: #000;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+/* -----------------------------------------------------------
+   FLASH MESSAGES (DJANGO)
+----------------------------------------------------------- */
+.messages {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+}
+
+.messages li {
+  padding: 0.5rem;
+  background-color: #f8d7da; /* error bg */
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Success message style */
+.messages li.success {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+/* ===================== Account Details Section ===================== */
+.account-details h3 {
+  margin: 50px 0 20px 0;
+  font-size: 25px;
+}
+
+.card {
+  background: white;
+  border-radius: 1px;
+  padding: 0;
+  display: flex;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Left - Profile image upload */
+.left-section {
+  width: 45%;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.right-meta {
+  width: 55%;
+  padding: 25px 25px;
+  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.image-upload-box {
+  text-align: center;
+}
+
+.profile-circle {
+  width: 160px;
+  height: 160px;
+  background: #D9D9D9;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* VERY IMPORTANT */
+  position: relative;
+}
+
+.profile-circle img.camera-icon {
+  width: 50px; 
+  height: 50px; 
+  opacity: 0.9; 
+}
+
+.profile-circle img.preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Makes image fill circle */
+  border-radius: 50%;
+}
+
+.profile-circle p {
+  color: black;
+  font-weight: 700;
+  margin-top: 10px;
+  position: absolute;
+  bottom: 10px;
+}
+
+
+.btn-upload {
+  margin-top: 15px;
+  padding: 10px 20px;
+  height: 40px;
+  background: #34a853;
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-upload:hover {
+  background-color: #15913e;
+}
+
+/* Right - System Meta Information */
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meta-row label {
+  font-weight: 700;
+}
+
+.meta-row input {
+  width: 56%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 2px solid #eee;
+  background: #fff;
+  font-size: 14px;
+}
+
+.system-id {
+  background: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  border: 2px solid #ddd;
+  font-weight: 700;
+}
+
+/* Separator line */
+hr.sep {
+  border: none;
+  border-top: 2px solid black;
+  margin: 50px 0 50px 0;
+}
+
+/* ===================== Personal Details Form ===================== */
+.personal-details h3 {
+  margin: 50px 0 20px 0;
+  font-size: 25px;
+}
+
+.personal {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 26px;
+  border-radius: 1px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.form-row label {
+  width: 36%;
+  font-weight: 700;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 2px solid #eee;
+  background: #fff;
+  outline: none;
+  font-size: 14px;
+  transition: all 0.5s;
+}
+
+.form-row input:hover,
+.form-row select:hover,
+.form-row input:focus,
+.form-row select:focus {
+  border: 2px solid #4a9dec;
+  box-shadow: 0px 0px 0px 7px rgb(74, 157, 236, 20%);
+  background-color: white;
+}
+
+/* Gender Field Styling */
+.gender-group {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ======================= BUTTONS ======================= */
+.actions {
+  margin-top: 30px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.save {
+  background-color: #2f9b3f;
+  height: 40px;
+  border: none;
+  color: white;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cancel {
+  background-color: transparent;
+  height: 40px;
+  border: 2px solid #D21312;
+  color: #D21312;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.save:hover {
+  background-color: #15913e;
+}
+
+.cancel:hover {
+  background-color: #ED2B2A;
+  color: white;
+  border: 2px solid transparent;
+}
+/* ======================= RESPONSIVE ======================= */
+@media (max-width: 1024px) {
+  .container {
+    width: 100%;
+    padding: 18px;
+  }
+  .left-section,
+  .right-meta {
+    width: 100%;
+  }
+}
+
+@media (max-width: 860px) {
+  .card {
+    flex-direction: column;
+    padding: 20px;
+  }
+  .profile-circle {
+    width: 140px;
+    height: 140px;
+  }
+  .profile-circle img.camera-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .meta-row input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .container h2 {
+    font-size: 28px;
+  }
+  .card {
+    padding: 18px;
+  }
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form-row label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  .form-row input,
+  .form-row select,
+  .form-row .phone,
+  .iti {
+    width: 100%;
+  }
+  
+  .gender-group {
+    flex-direction: column;
+    align-items: flex-start;
+}  
+
+  .actions {
+    flex-direction: column;
+  }
+  .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px 12px;
+  }
+  .profile-circle {
+    width: 120px;
+    height: 120px;
+  }
+  .container h2 {
+    font-size: 24px;
+  }
+}

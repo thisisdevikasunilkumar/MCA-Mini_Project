@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="author" content="Devika Sunilkumar" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-name" content="Procezo Website" />
+    <meta name="language" content="English" />
+    <title>{% block title %}Admin Dashboard{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'image/procezo-title-logo.png' %}"/>
+    <link rel="stylesheet" href="{% static 'css/admin/AdminDashboard.css' %}"/>
+  </head>
+  <body>
+    <script type="text/javascript">
+        function preventBack() {
+            window.history.forward();
+        }
+        setTimeout("preventBack()", 0);
+        window.onunload = function () { null };
+    </script>
+    <!-- ================= HEADER ================= -->
+    <header id="home-page">
+      <nav class="sidebar">
+        <div class="top-section">
+          <img src="{% static 'image/procezo-logo-white.png' %}" alt="Procezo Logo" class="logo" />
+          <ul class="menu">
+            <li><a href="{% url 'accounts:admin_dashboard' %}"><img src="{% static 'image/dashboard/AdminHome.png' %}" class="icon" /><span>Home</span></a></li>
+            <li><a href="{% url 'accounts:admin_staff_management' %}"><img src="{% static 'image/dashboard/Staff.png' %}" class="icon" /><span>Staff Management</span></a></li>
+            <li><a href="{% url 'accounts:admin_attendance_management' %}"><img src="{% static 'image/dashboard/Attendance.png' %}" class="icon" /><span>Attendance</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/work schedule.png' %}" class="icon" /><span>Work Schedule</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/key logs.png' %}" class="icon" /><span>Key Logs</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/Emotion.png' %}" class="icon" /><span>Emotion</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/Salary.png' %}" class="icon" /><span>Salary</span></a></li>
+          </ul>
+        </div>
+
+        <div class="bottom-section">
+          <div class="admin">
+            <img src="{% static 'image/dashboard/admin.png' %}" alt="Admin" class="admin-icon" />
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <div class="main-content">
+      <!-- Header -->
+      <div class="header-content">
+        <div class="header-left">
+          <h2>Admin Dashboard
+            <span class="role-tag">Administrator</span>
+          </h2>
+
+          <form method="GET" action="{% url 'accounts:admin_staff_search' %}" class="search-wrapper">
+              <img src="{% static 'image/dashboard/search.png' %}" 
+                  class="search-icon" 
+                  onclick="this.closest('form').submit();">
+            <input type="text" name="q" placeholder="Search staff..." class="search-box" />
+          </form>
+        </div>
+
+        <div class="header-right">
+            <a href="{% url 'accounts:login_register' %}">
+                <button class="logout-btn">
+                    <div class="sign">
+                        <svg viewBox="0 0 512 512">
+                        <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
+                        </svg>
+                    </div>
+                    <div class="logout-btn-text">Logout</div>
+                </button>
+            </a>
+        </div>
+      </div>
+
+      <!-- CONTENT BLOCK -->
+      {% block content %}
+
+      <!-- Dashboard cards -->
+      <section class="cards">
+        <div class="card">
+            <img src="{% static 'image/dashboard/user.png' %}" class="card-icon" />
+            <h3>Total Staff<br>{{ staff_count }}</h3>
+        </div>
+
+        <div class="card">
+          <img src="{% static 'image/dashboard/present.png' %}" class="card-icon" />
+          <h3>Today Attendance<br>100</h3>
+        </div>
+
+        <div class="card">
+          <img src="{% static 'image/dashboard/work status.png' %}" class="card-icon" />
+          <h3>Work Status<br>100</h3>
+        </div>
+      </section>
+
+      <!-- Recent Staff + Emotion -->
+      <section class="data-section">
+        <div class="recent-staff">
+          <h3>Recent Staff</h3>
+          <p>Latest staff registrations and their status</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for staff in recent_staff %}
+              <tr>
+                <td>{{ staff.name }}</td>
+                <td>{{ staff.email }}</td>
+                <td>
+                  {% if staff.attendances.exists %}
+                    {{ staff.attendances.last.status }}
+                  {% else %}
+                    No Records
+                  {% endif %}
+                </td>
+                <td>{{ staff.created_at|date:"Y-m-d" }}</td>
+                <td><button class="view-btn">View</button></td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="text-align:center;">No staff registered</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="staff-emotion">
+          <h3>Staff Emotion</h3>
+          <p>Current staff emotion status</p>
+          <canvas id="emotionChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Productivity Overview -->
+      <div class="productivity">
+        <h3>Productivity Overview</h3>
+        <p>Monthly productivity for the last 6 months</p>
+        <canvas id="productivityChart"></canvas>
+      </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script src="js/admin/AdminDashboard.js"></script>
+
+      {% endblock %}
+    </div>
+  </body>
+</html>

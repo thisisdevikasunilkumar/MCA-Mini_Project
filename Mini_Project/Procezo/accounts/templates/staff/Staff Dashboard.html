@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="author" content="Devika Sunilkumar" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-name" content="Procezo Website" />
+    <meta name="language" content="English" />
+    <title>{% block title %}Staff Dashboard{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'image/procezo-title-logo.png' %}" />
+    <link rel="stylesheet" href="{% static 'css/staff/StaffDashboard.css' %}" />
+  </head>
+  <body>
+    <script type="text/javascript">
+        function preventBack() {
+            window.history.forward();
+        }
+        setTimeout("preventBack()", 0);
+        window.onunload = function () { null };
+    </script>    
+    <!-- ================= HEADER ================= -->
+    <header id="home-page" >
+      <nav class="sidebar">
+        <div class="top-section">
+          <img src="{% static 'image/procezo-logo-white.png' %}" alt="Procezo Logo" class="logo" />
+          <div class="profile-card">
+            <img alt="profile" src="{% static 'image/dashboard/' %}{% if staff.gender == 'female' %}female user.png{% else %}male user.png{% endif %}">
+            <!-- <img src="https://img.icons8.com/color/96/000000/user-female-circle--v1.png" alt="profile"> -->
+            <ul>
+              <li class="role">{{ staff.role|default:"Role" }}</li>
+              <li class="job-type">{{ staff.job_type|default:"Job Type" }}</li>
+
+              <a href="{% url 'accounts:staff_profile' %}">
+                <button class="update-btn">update</button>
+              </a>
+            </ul>
+          </div>
+          <ul class="menu">
+            <li><a href="{% url 'accounts:staff_attendance' %}"><img src="{% static 'image/dashboard/Attendance.png' %}" alt="Attendance" class="icon" /><span>Attendance</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/work schedule.png' %}" alt="Work Schedule" class="icon" /><span>Work Schedule</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/key logs.png' %}" alt="Key Logs" class="icon" /><span>Key Logs</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/Emotion.png' %}" alt="Emotion" class="icon" /><span>Emotion</span></a></li>
+            <li><a href="#"><img src="{% static 'image/dashboard/Salary.png' %}" alt="Salary" class="icon" /><span>Salary</span></a></li>
+          </ul>
+        </div>
+        <div class="bottom-section">
+          <div class="admin">
+            <img src="{% static 'image/dashboard/admin.png' %}" alt="Admin" class="admin-icon" />
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <h2> Staff Dashboard <span class="role-tag">{{ staff.name|default:"Staff" }}</span></h2>
+          <a href="{% url 'accounts:staff_dashboard' %}"><img src="{% static 'image/dashboard/AdminHome.png' %}" alt="search" class="home-icon" /></a>
+        </div>
+        
+        <div class="header-right">
+            <a href="{% url 'accounts:login_register' %}">
+                <button class="logout-btn">
+                    <div class="sign">
+                        <svg viewBox="0 0 512 512">
+                        <path
+                            d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z">
+                        </path>
+                        </svg>
+                    </div>
+                    <div class="logout-btn-text">Logout</div>
+                </button>
+            </a>
+          </div>
+      </header>
+      {% block content %}
+      {% endblock %}
+    </div>       
+  </body>
+</html>
