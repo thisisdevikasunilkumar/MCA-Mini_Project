@@ -1,0 +1,183 @@
+{% extends 'staff/Staff Dashboard.html' %}
+{% load static %}
+
+{% block title %}Staff Profile Management{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/staff/StaffDashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/staff/StaffProfile.css' %}">
+<link rel="stylesheet" href="{% static './phone/css/intlTelInput.css' %}"/>
+
+<script src="{% static './phone/js/intlTelInput.js' %}"></script>
+<script src="{% static './phone/js/utils.js' %}"></script>
+
+<main class="main">
+    <section class="container">
+        <h2>Staff Profile</h2>
+        <p>Manage and update your personal information</p>
+
+        <form id="staffForm" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <!-- Django messages display section -->
+            {% if messages %}
+                <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            <!-- =================== ACCOUNT DETAILS =================== -->
+            <div class="account-details">
+                <h3>Account Details</h3>
+
+                <div class="card">
+
+                    <!-- LEFT SIDE: IMAGE UPLOAD -->
+                    <div class="left-section">
+                        <div class="image-upload-box">
+                            <input type="file" id="profileUpload" name="profile_image" accept="image/*" hidden>
+
+                            <div class="profile-circle" onclick="document.getElementById('profileUpload').click();">
+                                <img id="previewImg"
+                                    src="{% if staff and staff.profile_image %}
+                                            {{ staff.profile_image.url }}
+                                        {% else %}
+                                            {% static 'image/dashboard/camera.png' %}
+                                        {% endif %}"
+                                    class="{% if staff and staff.profile_image %}preview{% else %}camera-icon{% endif %}"
+                                    data-default-img="{% static 'image/dashboard/camera.png' %}"
+                                >
+                                {% if not staff or not staff.profile_image %}
+                                <p id="imageLabel">Profile Image</p>
+                                {% endif %}
+                            </div>
+
+                            <button class="btn-upload" type="button" onclick="document.getElementById('profileUpload').click();">
+                                Update Profile Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SIDE: READONLY META -->
+                    <div class="right-meta">
+                        <div class="meta-row">
+                            <label>Role</label>
+                            <input type="text" value="{{ staff.role }}" disabled>
+                        </div>
+
+                        <div class="meta-row">
+                            <label>Job Type</label>
+                            <input type="text" value="{{ staff.job_type }}" disabled>
+                        </div>
+
+                        <div class="meta-row">
+                            <label>System ID :</label>
+                            <input type="text" name="system_id" class="system-id" value="{{ staff.system_id }}" disabled>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <hr class="sep">
+
+            <!-- =================== PERSONAL DETAILS =================== -->
+            <div class="personal-details">
+                <h3>Personal Details</h3>
+
+                <div class="personal">
+
+                    <!-- Full Name -->
+                    <div class="form-row">
+                        <label>Enter Full Name :</label>
+                        <input type="text" name="full_name" placeholder="Full name" value="{{ staff.name }}">
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-row">
+                        <label>Email Address :</label>
+                        <input type="email" name="email" placeholder="name@example.com" value="{{ staff.email }}">
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="form-row">
+                        <label>Phone Number :</label>
+                        <input type="tel" id="phone" class="phone_no" name="phone" value="{{ staff.phone }}">
+                    </div>
+
+                    <!-- DOB -->
+                    <div class="form-row">
+                        <label>Date Of Birth :</label>
+                        <input type="date" class="calendar" name="dob" value="{{ register.dob|date:'Y-m-d' }}">
+                    </div>
+
+                    <!-- Gender -->
+                    <div class="form-row">
+                        <label>Gender :</label>
+                        <div class="gender-group">
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="female" 
+                                       {% if register.gender == 'female' %}checked{% endif %}>
+                                <span>Female</span>
+                            </label>
+
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="male" 
+                                       {% if register.gender == 'male' %}checked{% endif %}>
+                                <span>Male</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Location Dropdowns -->
+                    <div class="form-row">
+                        <label>Country :</label>
+                        <select id="country" name="country">
+                            <option value="">{{ register.country|default:"Select country" }}</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label>State :</label>
+                        <select id="state" name="state">
+                            <option value="">{{ register.state|default:"Select state" }}</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label>City :</label>
+                        <select id="city" name="city">
+                            <option value="">{{ register.city|default:"Select city" }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Place -->
+                    <div class="form-row">
+                        <label>Place :</label>
+                        <input type="text" name="place" placeholder="Place" value="{{ register.place }}">
+                    </div>
+
+                    <!-- Pincode -->
+                    <div class="form-row">
+                        <label>PinCode :</label>
+                        <input type="text" name="pincode" placeholder="Postal code" value="{{ register.pin_code }}">
+                    </div>
+
+                    <!-- BUTTONS -->
+                    <div class="actions">
+                        <button type="submit" class="save">Save Changes</button>
+                        <button type="reset" class="cancel" onclick="resetProfileImage()">Cancel</button>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script src="{% static 'js/staff/StaffProfile.js' %}"></script>
+<script src="{% static 'js/location.js' %}"></script>   
+{% endblock %}

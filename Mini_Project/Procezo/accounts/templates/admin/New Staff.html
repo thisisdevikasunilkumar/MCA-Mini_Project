@@ -1,0 +1,147 @@
+{% extends 'admin/Admin Dashboard.html' %}
+{% load static %}
+
+{% block title %}Add New Staff{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/admin/AdminDashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/admin/NewStaff.css' %}">
+
+<main class="main">
+    <section class="container">
+        <div>
+            <a href="{% url 'accounts:admin_staff_management' %}" class="back-btn">Back to Staff Management</a>
+            <h2>{% if staff and staff.staff_id%}Update Staff{% else %}New Staff{% endif %}</h2>
+            <p>Fill out the form below to add a new staff member</p>
+        </div>
+        
+        <form id="staffForm" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <!-- Django messages display section -->
+            {% if messages %}
+                <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+
+            <!-- ===================== ACCOUNT DETAILS ===================== -->
+            <div class="account-details">
+                <h3>Account Details</h3>
+
+                <div class="card">
+                    <!-- Profile Upload -->
+                    <div class="left-section">
+                        <div class="image-upload-box">
+                            <input type="file" id="profileUpload" name="profile_image" accept="image/*" hidden>
+                            <div class="profile-circle" onclick="document.getElementById('profileUpload').click();">
+                                <img id="previewImg"
+                                    src="{% if staff and staff.profile_image %}
+                                            {{ staff.profile_image.url }}
+                                        {% else %}
+                                            {% static 'image/dashboard/camera.png' %}
+                                        {% endif %}"
+                                    class="{% if staff and staff.profile_image %}preview{% else %}camera-icon{% endif %}"
+                                    data-default-img="{% static 'image/dashboard/camera.png' %}"
+                                >
+                                {% if not staff or not staff.profile_image %}
+                                <p id="imageLabel">Profile Image</p>
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn-upload"
+                                    onclick="document.getElementById('profileUpload').click();">
+                                Upload Profile Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Role / Job Type / System ID -->
+                    <div class="right-meta">
+                        <div class="form-row">
+                            <label>Role :</label>
+                            <select name="role" required>
+                                <option hidden>Choose Role</option>
+                                <option value="Admin" {% if staff.role == 'Admin' %}selected{% endif %}>Admin</option>
+                                <option value="Staff" {% if staff.role == 'Staff' %}selected{% endif %}>Staff</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Job Type :</label>
+                            <select name="job_type" required>
+                                <option hidden>Job Type</option>
+                                <option value="HR" {% if staff.job_type == 'HR' %}selected{% endif %}>HR</option>
+                                <option value="Finance" {% if staff.job_type == 'Finance' %}selected{% endif %}>Finance</option>
+                                <option value="Sales" {% if staff.job_type == 'Sales' %}selected{% endif %}>Sales</option>
+                                <option value="Marketing" {% if staff.job_type == 'Marketing' %}selected{% endif %}>Marketing</option>
+                                <option value="Operations" {% if staff.job_type == 'Operations' %}selected{% endif %}>Operations</option>
+                                <option value="IT Support" {% if staff.job_type == 'IT Support' %}selected{% endif %}>IT Support</option>
+                            </select>
+                        </div>
+
+                        <div class="meta-row">
+                            <label>System ID :</label>
+                            <input type="text" class="system-id" name="system_id" placeholder="system_id" value="{{ staff.system_id }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="sep">
+
+            <!-- ===================== PERSONAL DETAILS ===================== -->
+            <div class="personal-details">
+                <h3>Personal Details</h3>
+
+                <div class="personal">
+
+                    <!-- Full Name -->
+                    <div class="form-row">
+                        <label>Enter Full Name :</label>
+                        <input type="text" placeholder="Full name" name="full_name" value="{{ staff.name }}" required>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-row">
+                        <label>Email Address :</label>
+                        <input type="email" placeholder="name@example.com" name="email" value="{{ staff.email }}" required>
+                    </div>
+
+                    <!-- Gender -->
+                    <div class="form-row">
+                        <label>Gender :</label>
+                        <div class="gender-group">
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="female" required
+                                       {% if staff.gender == 'female' %}checked{% endif %}>
+                                <span>Female</span>
+                            </label>
+
+                            <label class="radio-option">
+                                <input type="radio" name="gender" value="male" 
+                                       {% if staff.gender == 'male' %}checked{% endif %}>
+                                <span>Male</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Form Buttons -->
+                    <div class="actions">
+                        <button type="submit" class="save">Save Changes</button>
+                        <button type="reset" class="cancel" onclick="resetProfileImage()">Cancel</button>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script src="{% static 'js/admin/NewStaff.js' %}"></script>
+
+{% endblock %}

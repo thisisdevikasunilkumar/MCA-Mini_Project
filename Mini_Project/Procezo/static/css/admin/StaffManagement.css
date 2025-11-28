@@ -1,0 +1,177 @@
+:root {
+  --sidebar-w: 260px;
+  --card-bg: #ffffff;
+  --text-dark: #222;
+  --radius: 12px;
+  --shadow: 0 6px 18px rgba(15, 15, 15, 0.12);
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  padding: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+}
+
+.container {
+  width: 1200px;
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 28px 36px;
+  box-shadow: var(--shadow);
+  border: 1px solid #f1f1f1;
+}
+
+/* Heading */
+.container h2 {
+  margin: 5px 0 15px;
+  font-size: 35px;
+  font-weight: 700;
+}
+
+/* Top section layout */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;       /* spacing between button & search box */
+  margin-bottom: 15px;
+}
+
+/* Search box */
+.staff-search-box{
+  padding: 10px;
+  width: 110px;
+  border-radius: 8px;
+  transition: width 0.3s;
+  font-family: Consolas, monaco, monospace;
+}
+
+.staff-search-box:focus {
+  outline: 1px solid black;
+  box-shadow: none;
+  width: 230px;
+}
+
+.staff-search-box::placeholder {
+  color: black;
+}
+
+/* Button */
+.btn-primary {
+  background: #2d9c46;
+  color: white;
+  font-weight: 600;
+  font-family: Consolas, monaco, monospace;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  height: 40px;
+}
+
+.btn-primary:hover {
+  background: #238038;
+}
+
+
+/* -----------------------------------------------------------
+   FLASH MESSAGES (DJANGO)
+----------------------------------------------------------- */
+.messages {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 1rem 0;
+}
+
+.messages li {
+  padding: 0.5rem;
+  background-color: #f8d7da; /* error bg */
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Success message style */
+.messages li.success {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+table th {
+  background: #ffb74d;
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.staff-profile-img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+
+
+.actions button {
+  padding: 5px 10px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-edit {
+    background: #4CAF50;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.btn-delete {
+    background: #e04c4c;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+}
+.btn-edit:hover, .btn-delete:hover {
+    opacity: 0.8;
+}
+
+
+/* Responsive */
+@media (max-width: 900px) {
+  body {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: scroll;
+  }
+
+  .nav-btn {
+    flex: 1;
+    text-align: center;
+  }
+}

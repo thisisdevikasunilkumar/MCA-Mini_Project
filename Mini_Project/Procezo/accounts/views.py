@@ -294,3 +294,312 @@ def api_login_with_password(request):
             return JsonResponse({"success": False, "error": "Invalid credentials."})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+    
+# ..............................................................
+# -------------------- Admin Dashboard URLs --------------------
+# ..............................................................
+
+# Admin dashboard view
+def admin_dashboard(request):
+    recent_staff = Staff.objects.order_by('-created_at')[:5]   # <-- last 5 created accounts
+    staff_count = Staff.objects.count()   # <-- total staff count
+
+    return render(request, 'admin/Admin Dashboard.html', {
+        'recent_staff': recent_staff,
+        'staff_count': staff_count
+    })
+
+# Admin staff search view
+def admin_staff_search(request):
+    query = request.GET.get("q", "")
+
+    results = Staff.objects.filter(
+        Q(name__icontains=query) |
+        Q(email__icontains=query) |
+        Q(staff_id__icontains=query) |
+        Q(role__icontains=query) |
+        Q(job_type__icontains=query)
+    )
+
+    return render(request, "admin/Admin Search Results.html", {
+        "results": results,
+        "query": query,
+    })
+
+# Admin staff management view
+def admin_staff_management(request):
+    query = request.GET.get("q", "")   # read search input
+
+    if query:
+        staff_list = Staff.objects.filter(
+            Q(staff_id__icontains=query) |
+            Q(name__icontains=query) |
+            Q(email__icontains=query) |
+            Q(role__icontains=query) |
+            Q(job_type__icontains=query)
+        ).order_by('-created_at')
+    else:
+        staff_list = Staff.objects.all().order_by('-created_at')
+
+    return render(request, 'admin/Staff Management.html', {
+        "staff_list": staff_list,
+        "query": query
+    })
+
+# ---------------------------------------------------------
+# ADD / UPDATE STAFF
+# ---------------------------------------------------------
+def add_new_staff(request, staff_id=None):
+    staff = None
+
+    # UPDATE mode
+    if staff_id:
+        staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    if request.method == "POST":
+
+        name = request.POST.get("full_name")
+        email = request.POST.get("email")
+        role = request.POST.get("role")
+        gender = request.POST.get("gender")
+        job_type = request.POST.get("job_type")
+        system_id = request.POST.get("system_id")
+        profile_image = request.FILES.get("profile_image")
+
+        # ----------------------------------
+        # UPDATE STAFF
+        # ----------------------------------
+        if staff:
+            staff.name = name
+            staff.email = email
+            staff.role = role
+            staff.gender = gender
+            staff.job_type = job_type
+            staff.system_id = system_id
+
+            if profile_image:
+                staff.profile_image = profile_image
+
+            staff.save()
+
+            # ---------- EMAIL FOR UPDATE ----------
+            html_content = f"""
+            <p>Dear <b>{name}</b>,</p>
+            <p>Your staff profile has been <b>updated successfully</b>.</p>
+            <p><b>Updated Details:</b></p>
+            <ul>
+                <li><b>Staff ID:</b> <span style="color:red;">{staff.staff_id}</span></li>
+                <li><b>Name:</b> {name}</li>
+                <li><b>Role:</b> {role}</li>
+                <li><b>Job Type:</b> {job_type}</li>
+            </ul>
+            <p>If you did not request this change, please contact the admin immediately.</p>
+            <p>Regards,<br>Admin Team</p>
+            """
+            text_content = strip_tags(html_content)
+
+            email_message = EmailMultiAlternatives(
+                subject="Your Staff Profile has been Updated",
+                body=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[email]
+            )
+            email_message.attach_alternative(html_content, "text/html")
+            email_message.send()
+
+            messages.success(request, "Staff Updated Successfully!")
+            return redirect("accounts:add_new_staff")
+
+        # ----------------------------------
+        # INSERT NEW STAFF
+        # ----------------------------------
+        staff = Staff.objects.create(
+            name=name,
+            email=email,
+            role=role,
+            gender=gender,
+            job_type=job_type,
+            system_id=system_id,
+            profile_image=profile_image,
+        )
+
+
+        # ---------------- EMAIL FOR INSERT ----------------
+        html_content = f"""
+        <p>Dear <b>{name}</b>,</p>
+        <p>Welcome to the team! Your account has been <b>successfully created</b>.</p>
+        <p><b>Here are your login details:</b></p>
+        <ul>
+            <li><b>Staff ID :</b> <span style="color:red;">{staff.staff_id}</span></li>
+            <li><b>Name:</b> {name}</li>
+            <li><b>Role:</b> {role}</li>
+            <li><b>Job Type:</b> {job_type}</li>
+        </ul>
+        <p>Use these credentials to log in to the system. Update your complete profile details after registering.</p>
+        <p>Regards,<br>Admin Team</p>
+        """
+
+        text_content = strip_tags(html_content)
+
+        email_message = EmailMultiAlternatives(
+            subject="Welcome to the Team! Your Account Details",
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email]
+        )
+        email_message.attach_alternative(html_content, "text/html")
+        email_message.send()
+
+        messages.success(request, f"Staff Created Successfully! Staff ID: {staff.staff_id}")
+        return redirect("accounts:add_new_staff")
+
+    # GET request (load form)
+    return render(request, "admin/New Staff.html", {
+        "staff": staff,
+        "is_update": True if staff_id else False
+    })
+
+
+# ---------------------------------------------------------
+# UPDATE STAFF
+# ---------------------------------------------------------
+def update_staff(request, staff_id):
+    return add_new_staff(request, staff_id)
+
+# ---------------------------------------------------------
+# DELETE STAFF
+# ---------------------------------------------------------
+def delete_staff(request, staff_id):
+    staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    name = staff.name
+    email = staff.email
+    job_type = staff.job_type
+    role = staff.role
+
+    # -------- DELETE PROFILE FOLDER --------
+    profile_folder = os.path.join(settings.MEDIA_ROOT, "profiles", staff_id)
+    if os.path.exists(profile_folder):
+        shutil.rmtree(profile_folder)  # deletes entire folder
+
+    # -------- DELETE FACE FOLDER --------
+    face_folder = os.path.join(settings.MEDIA_ROOT, "faces", staff_id)
+    if os.path.exists(face_folder):
+        shutil.rmtree(face_folder)
+
+    # Delete staff record
+    staff.delete()
+
+    # ---------- EMAIL FOR DELETE ----------
+    html_content = f"""
+    <p>Dear <b>{name}</b>,</p>
+    <p>Your staff account has been <b>removed</b> from the system.</p>
+    <p><b>Removed Account:</b></p>
+    <ul>
+        <li><b>Staff ID:</b> <span style="color:red;">{staff_id}</span></li>
+        <li><b>Name:</b> {name}</li>
+        <li><b>Role:</b> {role}</li>
+        <li><b>Job Type:</b> {job_type}</li>
+    </ul>
+    <p>If you think this is a mistake, please contact the admin immediately.</p>
+    <p>Regards,<br>Admin Team</p>
+    """
+
+    text_content = strip_tags(html_content)
+
+    email_message = EmailMultiAlternatives(
+        subject="Your Staff Account has been Deleted",
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email]
+    )
+    email_message.attach_alternative(html_content, "text/html")
+    email_message.send()
+
+    messages.success(request, "Staff Deleted Successfully!")
+    return redirect("accounts:admin_staff_management")
+
+def admin_attendance_management(request):
+    return render(request, "admin/Attendance Management.html")
+
+# ..............................................................
+# -------------------- Staff Dashboard URLs --------------------
+# ..............................................................
+
+# Staff dashboard view
+def staff_dashboard(request):
+    staff_id = request.session.get('staff_id')
+    if not staff_id:
+        return redirect('accounts:login_register')
+    
+    # Get the Staff instance
+    staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    today = timezone.localdate()
+
+    # FIXED: Query Attendance using the Staff instance
+    attendance = Attendance.objects.filter(
+        staff=staff,
+        date=today
+    ).first()
+
+    return render(
+        request,
+        'staff/Staff Dashboard.html',
+        {'staff': staff, 'attendance': attendance}
+    )
+
+# Staff profile view
+def staff_profile(request):
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        messages.error(request, "Session expired. Please log in again.")
+        return redirect("accounts:login_register")
+
+    # Fetch STAFF (master)
+    staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    # Fetch REGISTER (login + personal data)
+    register = Register.objects.filter(staff=staff).first()
+
+    if request.method == "POST":
+
+        # ------- UPDATE REGISTER FIELDS -------- #
+        register.name = request.POST.get("full_name")
+        register.email = request.POST.get("email")
+        register.gender = request.POST.get("gender")
+        register.phone = request.POST.get("phone")
+        register.dob = request.POST.get("dob")
+        register.country = request.POST.get("country")
+        register.state = request.POST.get("state")
+        register.city = request.POST.get("city")
+        register.place = request.POST.get("place")
+        register.pin_code = request.POST.get("pincode")
+
+        # Profile Image update
+        if "profile_image" in request.FILES:
+            register.profile_image = request.FILES["profile_image"]
+
+        register.save()
+
+        messages.success(request, "Profile updated successfully!")
+        return redirect("accounts:staff_profile")   # Refresh page
+
+    # SEND BOTH MODELS
+    context = {
+        "staff": staff,
+        "register": register,
+    }
+    return render(request, "staff/Staff Profile.html", context)
+
+# Staff profile view
+def staff_attendance(request):
+    staff = None
+    staff_id = request.session.get('staff_id')
+    if staff_id:
+        staff = get_object_or_404(Staff, staff_id=staff_id)
+    context = {
+        'staff': staff
+    }
+    return render(request, 'staff/Attendance.html',context)    
