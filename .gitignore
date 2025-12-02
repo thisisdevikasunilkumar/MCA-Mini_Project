@@ -145,6 +145,9 @@ env.bak/
 venv.bak/
 env1
 
+# Ignore media uploads
+media/
+
 # Spyder project settings
 .spyderproject
 .spyproject

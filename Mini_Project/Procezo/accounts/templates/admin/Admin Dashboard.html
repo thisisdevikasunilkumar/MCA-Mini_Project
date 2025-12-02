@@ -20,10 +20,11 @@
         setTimeout("preventBack()", 0);
         window.onunload = function () { null };
     </script>
-    <!-- ================= HEADER ================= -->
-    <header id="home-page">
+    <!-- ================= aside ================= -->
+    <aside id="home-page">
       <nav class="sidebar">
         <div class="top-section">
+          <!-- Logo -->
           <img src="{% static 'image/procezo-logo-white.png' %}" alt="Procezo Logo" class="logo" />
           <ul class="menu">
             <li><a href="{% url 'accounts:admin_dashboard' %}"><img src="{% static 'image/dashboard/AdminHome.png' %}" class="icon" /><span>Home</span></a></li>
@@ -31,77 +32,85 @@
             <li><a href="{% url 'accounts:admin_attendance_management' %}"><img src="{% static 'image/dashboard/Attendance.png' %}" class="icon" /><span>Attendance</span></a></li>
             <li><a href="#"><img src="{% static 'image/dashboard/work schedule.png' %}" class="icon" /><span>Work Schedule</span></a></li>
             <li><a href="#"><img src="{% static 'image/dashboard/key logs.png' %}" class="icon" /><span>Key Logs</span></a></li>
-            <li><a href="#"><img src="{% static 'image/dashboard/Emotion.png' %}" class="icon" /><span>Emotion</span></a></li>
+            <li><a href="{% url 'accounts:admin_emotion_management' %}"><img src="{% static 'image/dashboard/Emotion.png' %}" class="icon" /><span>Emotion</span></a></li>
             <li><a href="#"><img src="{% static 'image/dashboard/Salary.png' %}" class="icon" /><span>Salary</span></a></li>
           </ul>
         </div>
 
+        <!-- Bottom section -->
         <div class="bottom-section">
-          <div class="admin">
-            <img src="{% static 'image/dashboard/admin.png' %}" alt="Admin" class="admin-icon" />
-          </div>
+          <img src="{% static 'image/dashboard/admin.png' %}" alt="Admin" class="admin-icon" />
         </div>
       </nav>
-    </header>
-
-    <!-- ================= MAIN CONTENT ================= -->
+    </aside>
+    <!-- ================= main CONTENT ================= -->
     <div class="main-content">
-      <!-- Header -->
-      <div class="header-content">
-        <div class="header-left">
-          <h2>Admin Dashboard
-            <span class="role-tag">Administrator</span>
-          </h2>
+      <header class="staff-header">
+        <div class="left-box">
+          <div class="title-row">
+            <h1>Admin Dashboard
+              <span class="role-tag">Administrator</span>
+            </h1>
 
-          <form method="GET" action="{% url 'accounts:admin_staff_search' %}" class="search-wrapper">
-              <img src="{% static 'image/dashboard/search.png' %}" 
-                  class="search-icon" 
-                  onclick="this.closest('form').submit();">
-            <input type="text" name="q" placeholder="Search staff..." class="search-box" />
-          </form>
+            <form method="GET" action="{% url 'accounts:admin_staff_search' %}" class="search-wrapper">
+                <img src="{% static 'image/dashboard/search.png' %}" 
+                    class="search-icon" 
+                    onclick="this.closest('form').submit();">
+              <input type="text" name="q" placeholder="Search staff..." class="search-box" />
+            </form>
+          </div>         
         </div>
-
-        <div class="header-right">
-            <a href="{% url 'accounts:login_register' %}">
-                <button class="logout-btn">
-                    <div class="sign">
-                        <svg viewBox="0 0 512 512">
-                        <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
-                        </svg>
-                    </div>
-                    <div class="logout-btn-text">Logout</div>
-                </button>
-            </a>
-        </div>
-      </div>
+        
+        <a href="{% url 'accounts:login_register' %}">
+          <button class="logout-btn">
+            <div class="sign">
+              <svg viewBox="0 0 512 512">
+                <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
+              </svg>
+            </div>
+            <div class="logout-btn-text">Logout</div>
+          </button>
+        </a>
+      </header>
 
       <!-- CONTENT BLOCK -->
       {% block content %}
-
-      <!-- Dashboard cards -->
-      <section class="cards">
-        <div class="card">
-            <img src="{% static 'image/dashboard/user.png' %}" class="card-icon" />
-            <h3>Total Staff<br>{{ staff_count }}</h3>
+      <!-- ====== Stats Grid ====== -->
+      <div class="stats-grid">
+        <div class="stat-card" id="statCard1">
+          <div class="stat-icon" id="statIcon1">👥</div>
+          <div class="stat-value" id="statValue1">{{ staff_count }}</div>
+          <div class="stat-label" id="statLabel1">Total Staff</div>
         </div>
 
-        <div class="card">
-          <img src="{% static 'image/dashboard/present.png' %}" class="card-icon" />
-          <h3>Today Attendance<br>100</h3>
+        <div class="stat-card" id="statCard2">
+          <div class="stat-icon" id="statIcon2">✅</div>
+          <div class="stat-value" id="statValue2">5</div>
+          <div class="stat-label" id="statLabel2">Present Today</div>
         </div>
 
-        <div class="card">
-          <img src="{% static 'image/dashboard/work status.png' %}" class="card-icon" />
-          <h3>Work Status<br>100</h3>
+        <div class="stat-card" id="statCard3">
+          <div class="stat-icon" id="statIcon3">❌</div>
+          <div class="stat-value" id="statValue3">8</div>
+          <div class="stat-label" id="statLabel3">On Leave</div>
         </div>
-      </section>
 
-      <!-- Recent Staff + Emotion -->
-      <section class="data-section">
-        <div class="recent-staff">
-          <h3>Recent Staff</h3>
-          <p>Latest staff registrations and their status</p>
-          <table>
+        <div class="stat-card" id="statCard4">
+          <div class="stat-icon" id="statIcon4">🎂</div>
+          <div class="stat-value" id="statValue4">{{ birthday_this_week_count }}</div>
+          <div class="stat-label" id="statLabel4">Birthdays This Week</div>
+        </div>
+      </div>
+
+      <!-- ====== Content 2 Column Layout ====== -->
+      <div class="content-grid">
+        <!-- Tasks Card -->
+        <div class="content-grid-card" id="tasksCard">
+          <div class="card-header">
+            <h2 id="tasksTitle">Recent Staff</h2>
+          </div>
+
+          <table class="staff-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -111,21 +120,36 @@
                 <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {% for staff in recent_staff %}
               <tr>
-                <td>{{ staff.name }}</td>
-                <td>{{ staff.email }}</td>
+                <td>
+                  <div class="staff-name-cell">
+                    <div class="staff-avatar">
+                      {{ staff.name|slice:":1" }}{{ staff.name|slice:"1:2" }}
+                    </div>
+                    <div>
+                      <div class="staff-name">{{ staff.name }}</div>
+                      <div class="staff-email">{{ staff.job_type|default:"No role" }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="staff-email">{{ staff.email }}</td>
+
                 <td>
                   {% if staff.attendances.exists %}
-                    {{ staff.attendances.last.status }}
+                    <span class="staff-status active">
+                      {{ staff.attendances.last.status }}
+                    </span>
                   {% else %}
-                    No Records
+                    <span class="staff-status inactive">No Records</span>
                   {% endif %}
                 </td>
-                <td>{{ staff.created_at|date:"Y-m-d" }}</td>
-                <td><button class="view-btn">View</button></td>
+
+                <td>{{ staff.created_at|date:"M d, Y" }}</td>
+
+                <td><button class="action-btn">View</button></td>
               </tr>
               {% empty %}
               <tr>
@@ -136,22 +160,62 @@
           </table>
         </div>
 
-        <div class="staff-emotion">
-          <h3>Staff Emotion</h3>
-          <p>Current staff emotion status</p>
-          <canvas id="emotionChart"></canvas>
+        <!-- Announcements Card -->
+      <div class="content-grid-card" id="announcementsCard">
+        <div class="card-header">
+            <h2 id="announcementsTitle">🎂 Upcoming Birthdays</h2>
         </div>
-      </section>
 
-      <!-- Productivity Overview -->
-      <div class="productivity">
-        <h3>Productivity Overview</h3>
-        <p>Monthly productivity for the last 6 months</p>
-        <canvas id="productivityChart"></canvas>
+        <div class="birthday-list">
+            {% for b in upcoming_birthdays %}
+            <div class="birthday-item">
+                <div class="birthday-avatar">
+                    {{ b.name|slice:":1" }}{{ b.name|slice:"1:2" }}
+                </div>
+
+                <div class="birthday-info">
+                    <p class="birthday-name">{{ b.name }}</p>
+
+                    {% if b.dob.month == today.month and b.dob.day == today.day %}
+                        <p class="birthday-date">Today - {{ b.dob|date:"M d" }}</p>
+                    {% elif b.dob.month == tomorrow.month and b.dob.day == tomorrow.day %}
+                        <p class="birthday-date">Tomorrow - {{ b.dob|date:"M d" }}</p>
+                    {% else %}
+                        <p class="birthday-date">{{ b.dob|date:"M d" }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="birthday-icon">🎉</div>
+            </div>
+            {% empty %}
+            <p style="padding: 20px;">No upcoming birthdays 🎈</p>
+            {% endfor %}
+        </div>
       </div>
 
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      <script src="js/admin/AdminDashboard.js"></script>
+      </div>
+
+      <!-- ====== Schedule ====== -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2 id="schedule-title">Today's Schedule</h2>
+          <button class="view-all-btn">View Calendar</button>
+        </div>
+
+        <div class="schedule-list">
+          <div class="schedule-item">
+            <div class="schedule-details"></div>
+            <button class="meet-link-btn" onclick="addMeetingLink(this)">
+              <svg class="meet-icon" viewBox="0 0 24 24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              </svg>
+              Add Link
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <script src="{% static 'js/admin/AdminDashboard.js' %}"></script>
 
       {% endblock %}
     </div>
