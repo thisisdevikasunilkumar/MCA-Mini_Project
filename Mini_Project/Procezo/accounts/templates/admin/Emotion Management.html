@@ -1,0 +1,270 @@
+{% extends 'admin/Admin Dashboard.html' %}
+{% load static %}
+
+{% block title %}Staff Management{% endblock %}
+
+{% block extrastyle %}
+<!-- Dashboard base CSS -->
+<link rel="stylesheet" href="{% static 'css/admin/AdminDashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<!-- Include additional CSS -->
+<link rel="stylesheet" href="{% static 'css/admin/EmotionManagement.css' %}" />
+<!-- Emotion Page -->
+<div class="main">
+  <div class="container">
+    <h2>Emotion Tracking</h2>
+    <p>Monitor team mood and wellbeing</p>
+
+    <div>
+      <div class="card-header">
+        <h2>Today's Emotional State</h2>
+      </div>
+
+      <div class="emotion-grid">
+        <div class="emotion-card">
+          <div class="emotion-icon">😄</div>
+          <div class="emotion-label">Happy</div>
+          <div class="emotion-count">42 staff</div>
+        </div>
+
+        <div class="emotion-card">
+          <div class="emotion-icon">😢</div>
+          <div class="emotion-label">Sad</div>
+          <div class="emotion-count">42 staff</div>
+        </div>
+
+        <div class="emotion-card">
+          <div class="emotion-icon">😐</div>
+          <div class="emotion-label">Neutral</div>
+          <div class="emotion-count">42 staff</div>
+        </div>
+
+        <div class="emotion-card">
+          <div class="emotion-icon">😠</div>
+          <div class="emotion-label">Angry</div>
+          <div class="emotion-count">42 staff</div>
+        </div>
+
+        <div class="emotion-card">
+          <div class="emotion-icon">😴</div>
+          <div class="emotion-label">Tired</div>
+          <div class="emotion-count">42 staff</div>
+        </div>
+
+        <div class="emotion-card">
+          <div class="emotion-icon">🤓</div>
+          <div class="emotion-label">Focused</div>
+          <div class="emotion-count">42 staff</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-header">
+        <h2>Individual Reports</h2>
+      </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Status</th>
+                <th>Productivity</th>
+                <th>Feedback</th>
+                <th>Problem/Issue</th>
+                <th>Overall</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <tr>
+                <td>John Smith</td>
+                <td>😊 Happy</td>
+                <td>95%</td>
+                <td>Positive</td>
+                <td style="color: #718096;">--</td>
+                <td><span class="status-badge status-positive">Excellent</span></td>
+                <td>--</td>
+              </tr>
+
+              <tr>
+                <td>Sarah Johnson</td>
+                <td>😊 Happy</td>
+                <td>92%</td>
+                <td>Positive</td>
+                <td style="color: #718096;">--</td>
+                <td><span class="status-badge status-positive">Excellent</span></td>
+                <td>--</td>
+              </tr>
+
+              <tr>
+                <td>Mike Davis</td>
+                <td>😐 Neutral</td>
+                <td>85%</td>
+                <td>Moderate</td>
+                <td style="color: #718096;">--</td>
+                <td><span class="status-badge status-neutral">Good</span></td>
+                <td>--</td>
+              </tr>
+
+              <tr>
+                <td>Emily Brown</td>
+                <td>😔 Sad</td>
+                <td>78%</td>
+                <td>Needs Support</td>
+                <td style="color: #e53e3e; font-weight: 500;">
+                  Feeling overwhelmed with workload and personal issues
+                </td>
+                <td><span class="status-badge status-negative">Attention</span></td>
+                <td>
+                  <button class="btn btn-primary btn-small" onclick="askFeedback('Emily Brown', 'Sad')" style="margin-bottom: 5px;">Ask Feedback</button>
+                  <button class="btn btn-secondary btn-small" onclick="reportIssue('Emily Brown', 'Sad')">Report Issue</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td>David Wilson</td>
+                <td>😊 Happy</td>
+                <td>90%</td>
+                <td>Positive</td>
+                <td style="color: #718096;">--</td>
+                <td><span class="status-badge status-positive">Excellent</span></td>
+                <td>--</td>
+              </tr>
+
+              <tr>
+                <td>Alex Kumar</td>
+                <td>😴 Tired</td>
+                <td>72%</td>
+                <td>Low Energy</td>
+                <td style="color: #e53e3e; font-weight: 500;">
+                  Not getting enough sleep, too many late night shifts
+                </td>
+                <td><span class="status-badge status-negative">Attention</span></td>
+                <td>
+                  <button class="btn btn-primary btn-small" onclick="askFeedback('Alex Kumar', 'Tired')" style="margin-bottom: 5px;">Ask Feedback</button>
+                  <button class="btn btn-secondary btn-small" onclick="reportIssue('Alex Kumar', 'Tired')">Report Issue</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td>Lisa Chen</td>
+                <td>😠 Angry</td>
+                <td>68%</td>
+                <td>Frustrated</td>
+                <td style="color: #e53e3e; font-weight: 500;">
+                  Disagreement with team members, unclear project requirements
+                </td>
+                <td><span class="status-badge status-negative">Attention</span></td>
+                <td>
+                  <button class="btn btn-primary btn-small" onclick="askFeedback('Lisa Chen', 'Angry')" style="margin-bottom: 5px;">Ask Feedback</button>
+                  <button class="btn btn-secondary btn-small" onclick="reportIssue('Lisa Chen', 'Angry')">Report Issue</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td>James Park</td>
+                <td>😴 Tired</td>
+                <td>75%</td>
+                <td>Exhausted</td>
+                <td style="color: #e53e3e; font-weight: 500;">
+                  Working overtime for past 2 weeks, need rest
+                </td>
+                <td><span class="status-badge status-negative">Attention</span></td>
+                <td>
+                  <button class="btn btn-primary btn-small" onclick="askFeedback('James Park', 'Tired')" style="margin-bottom: 5px;">Ask Feedback</button>
+                  <button class="btn btn-secondary btn-small" onclick="reportIssue('James Park', 'Tired')">Report Issue</button>
+                </td>
+              </tr>
+
+              <tr>
+                <td>Maria Garcia</td>
+                <td>🎯 Focused</td>
+                <td>88%</td>
+                <td>Concentrated</td>
+                <td style="color: #718096;">--</td>
+                <td><span class="status-badge status-positive">Excellent</span></td>
+                <td>--</td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Feedback Section -->
+      <div class="content-card" id="feedback-section" style="display: none;">
+        <h3>Staff Feedback Request</h3>
+
+        <div style="background: #f7fafc; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #2d3748; font-size: 18px;" id="feedback-employee-name"></strong>
+            <span style="color: #718096; margin-left: 10px;" id="feedback-emotion"></span>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label for="feedback-message" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Ask about their problem:</label>
+            <textarea id="feedback-message" rows="4" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="What seems to be bothering you? How can we help improve your situation?"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="sendFeedbackRequest()">Send Request</button>
+            <button class="btn btn-secondary" onclick="closeFeedback()">Cancel</button>
+          </div>
+        </div>
+
+        <div id="feedback-response" style="margin-top: 20px; display: none;">
+          <div style="background: #c6f6d5; padding: 15px; border-radius: 8px; color: #22543d;">
+            <strong>✓ Feedback request sent successfully!</strong>
+            <p style="margin: 10px 0 0;">The employee will receive a notification to share their concerns.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Issue Report Section -->
+      <div class="content-card" id="issue-report-section" style="display: none;">
+        <h3>Report Issue - Why?</h3>
+
+        <div style="background: #fff5f5; padding: 20px; border-radius: 10px; border-left: 4px solid #e53e3e;">
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #2d3748; font-size: 18px;" id="issue-employee-name"></strong>
+            <span style="color: #718096; margin-left: 10px;" id="issue-emotion"></span>
+          </div>
+
+          <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #feb2b2;">
+            <strong style="color: #742a2a; display: block; margin-bottom: 8px;">Current Problem:</strong>
+            <p style="margin: 0; color: #2d3748;" id="issue-current-problem"></p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label for="issue-why" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Why is this happening? (Root cause analysis):</label>
+            <textarea id="issue-why" rows="5" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="Analyze the root cause of this issue. Why is the employee facing this problem? What factors are contributing to their emotional state?"></textarea>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label for="issue-action" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Proposed Action/Solution:</label>
+            <textarea id="issue-action" rows="4" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="What actions should be taken to address this issue? How can we help resolve their problem?"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="submitIssueReport()">Submit Report</button>
+            <button class="btn btn-secondary" onclick="closeIssueReport()">Cancel</button>
+          </div>
+        </div>
+
+        <div id="issue-response" style="margin-top: 20px; display: none;">
+          <div style="background: #c6f6d5; padding: 15px; border-radius: 8px; color: #22543d;">
+            <strong>✓ Issue report submitted successfully!</strong>
+            <p style="margin: 10px 0 0;">The report has been logged and will be reviewed by management.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script src="{% static 'js/admin/EmotionManagement.js' %}"></script>
+{% endblock %}

@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import os
 import shutil
 import base64, io, uuid, json
@@ -20,7 +21,6 @@ from django.db.models import Q
 from .models import Staff, Register, Attendance
 from .forms import StaffRegisterForm
 from .utils_face import pil_from_base64, count_faces, get_embedding_from_pil, save_base64_to_contentfile, cosine_similarity_vec, compare_two_images
-
 
 # Render main page
 def main_page(request):
@@ -299,14 +299,34 @@ def api_login_with_password(request):
 # -------------------- Admin Dashboard URLs --------------------
 # ..............................................................
 
-# Admin dashboard view
 def admin_dashboard(request):
-    recent_staff = Staff.objects.order_by('-created_at')[:5]   # <-- last 5 created accounts
-    staff_count = Staff.objects.count()   # <-- total staff count
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    next_week = today + timedelta(days=7)
+
+    # Upcoming birthdays (next 7 days)
+    upcoming_birthdays = Register.objects.filter(
+        Q(dob__month=today.month, dob__day__gte=today.day) |
+        Q(dob__month=next_week.month, dob__day__lte=next_week.day)
+    ).order_by('dob__month', 'dob__day')[:5]
+
+    # Birthdays this week (count only)
+    birthday_this_week_count = Register.objects.filter(
+        Q(dob__month=today.month, dob__day__gte=today.day) |
+        Q(dob__month=next_week.month, dob__day__lte=next_week.day)
+    ).count()
+
+    # Staff details
+    recent_staff = Staff.objects.order_by('-created_at')[:5] # <-- last 5 created accounts
+    staff_count = Staff.objects.count() # <-- total staff count
 
     return render(request, 'admin/Admin Dashboard.html', {
         'recent_staff': recent_staff,
-        'staff_count': staff_count
+        'staff_count': staff_count,
+        'upcoming_birthdays': upcoming_birthdays,
+        'birthday_this_week_count': birthday_this_week_count,
+        'today': today,
+        'tomorrow': tomorrow
     })
 
 # Admin staff search view
@@ -522,6 +542,9 @@ def delete_staff(request, staff_id):
 def admin_attendance_management(request):
     return render(request, "admin/Attendance Management.html")
 
+def admin_emotion_management(request):
+    return render(request, "admin/Emotion Management.html")
+
 # ..............................................................
 # -------------------- Staff Dashboard URLs --------------------
 # ..............................................................
@@ -532,21 +555,38 @@ def staff_dashboard(request):
     if not staff_id:
         return redirect('accounts:login_register')
     
-    # Get the Staff instance
     staff = get_object_or_404(Staff, staff_id=staff_id)
 
     today = timezone.localdate()
+    next_week = today + timedelta(days=7)
 
-    # FIXED: Query Attendance using the Staff instance
+    # Today's attendance
     attendance = Attendance.objects.filter(
         staff=staff,
         date=today
     ).first()
 
+    # Birthdays this week (count)
+    birthday_this_week_count = Register.objects.filter(
+        Q(dob__month=today.month, dob__day__gte=today.day) |
+        Q(dob__month=next_week.month, dob__day__lte=next_week.day)
+    ).count()
+
+    # Or if you want the actual list (optional)
+    birthday_this_week_list = Register.objects.filter(
+        Q(dob__month=today.month, dob__day__gte=today.day) |
+        Q(dob__month=next_week.month, dob__day__lte=next_week.day)
+    ).order_by('dob__month', 'dob__day')
+
     return render(
         request,
         'staff/Staff Dashboard.html',
-        {'staff': staff, 'attendance': attendance}
+        {
+            'staff': staff,
+            'attendance': attendance,
+            'birthday_this_week_count': birthday_this_week_count,
+            'birthday_this_week_list': birthday_this_week_list
+        }
     )
 
 # Staff profile view
@@ -593,7 +633,7 @@ def staff_profile(request):
     }
     return render(request, "staff/Staff Profile.html", context)
 
-# Staff profile view
+# Staff attendance view
 def staff_attendance(request):
     staff = None
     staff_id = request.session.get('staff_id')
@@ -602,4 +642,14 @@ def staff_attendance(request):
     context = {
         'staff': staff
     }
-    return render(request, 'staff/Attendance.html',context)    
+    return render(request, 'staff/Attendance.html',context) 
+
+def staff_emotion(request):
+    staff = None
+    staff_id = request.session.get('staff_id')
+    if staff_id:
+        staff = get_object_or_404(Staff, staff_id=staff_id)
+    context = {
+        'staff': staff
+    }    
+    return render(request, 'staff/Emotion.html',context)
