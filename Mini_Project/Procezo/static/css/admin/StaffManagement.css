@@ -61,7 +61,7 @@
 }
 
 /* Button */
-.btn-primary {
+/* .btn-primary {
   background: #2d9c46;
   color: white;
   font-weight: 600;
@@ -75,8 +75,31 @@
 
 .btn-primary:hover {
   background: #238038;
+} */
+
+.btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
 
 /* -----------------------------------------------------------
    FLASH MESSAGES (DJANGO)
@@ -104,23 +127,32 @@
 }
 
 /* Table */
-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 
-table th {
-  background: #ffb74d;
-  border: 1px solid #ddd;
-  padding: 10px;
-  text-align: left;
+.data-table thead {
+  background: #f7fafc;
 }
 
-td {
-  border: 1px solid #ddd;
-  padding: 10px;
+.data-table th {
+  padding: 1rem;
   text-align: left;
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 0.9rem;
+}
+
+.data-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f7fafc;
+  color: #292929;
+  font-size: 0.9rem;
+}
+
+.data-table tbody tr:hover {
+  background: #f7fafc;
 }
 
 .staff-profile-img {

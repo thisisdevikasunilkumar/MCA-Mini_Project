@@ -5,7 +5,7 @@ const tasks = [
   { id: 3, completed: false }
 ];
 
-// Helper: find task by id
+// Helper
 function findTask(id) {
   return tasks.find(t => t.id === Number(id));
 }
@@ -16,6 +16,7 @@ function updateTaskCheckboxes() {
     const id = cb.getAttribute('data-id');
     const task = findTask(id);
     if (!task) return;
+
     if (task.completed) {
       cb.classList.add('checked');
       cb.innerText = '✓';
@@ -38,7 +39,7 @@ document.querySelectorAll('.menu-item').forEach(item => {
   });
 });
 
-// ======================= CHECKBOX CLICK HANDLER ============================
+// ======================= CHECKBOX CLICK ============================
 function toggleTaskById(id) {
   const task = findTask(id);
   if (!task) return;
@@ -46,7 +47,6 @@ function toggleTaskById(id) {
   updateTaskCheckboxes();
 }
 
-// Click on checkbox
 document.addEventListener('click', (e) => {
   const cb = e.target.closest('.task-checkbox');
   if (cb) {
@@ -55,14 +55,13 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Allow toggling by clicking task-item row
+// ======================= ROW CLICK ============================
 document.querySelectorAll('.task-item').forEach(row => {
   row.addEventListener('click', () => {
     const id = row.getAttribute('data-id');
     toggleTaskById(id);
   });
 
-  // allow keyboard toggle on checkbox with Enter / Space
   const checkbox = row.querySelector('.task-checkbox');
   if (checkbox) {
     checkbox.addEventListener('keydown', (ev) => {
@@ -74,74 +73,100 @@ document.querySelectorAll('.task-item').forEach(row => {
   }
 });
 
-// ======================= SET CURRENT DATE & TIME ============================
+// ======================= CURRENT DATE TIME ============================
 function updateDateTime() {
   const now = new Date();
-  const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const dateStr = now.toLocaleDateString('en-US', dateOptions);
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit'
+  });
 
   const dateEl = document.getElementById('current-date');
+  if (dateEl) {
+    dateEl.textContent = dateStr;
+  }
+  
   const timeEl = document.getElementById('current-time');
-  if (dateEl) dateEl.textContent = dateStr;
-  if (timeEl) timeEl.textContent = timeStr;
+  if (timeEl) {
+    timeEl.textContent = timeStr;
+  }
 }
-updateDateTime();
-setInterval(updateDateTime, 1000);
 
-// Initial checkbox update
-updateTaskCheckboxes();
+document.addEventListener('DOMContentLoaded', function () {
+    if (document.getElementById('current-date') || document.getElementById('current-time')) {
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    }
+    
+    if (document.querySelector('.task-checkbox')) {
+        updateTaskCheckboxes();
+    }
+});
 
-// ======================= Meeting link modal & logic ============================
+// ======================= MEETING MODAL ============================
 let currentButton = null;
 
 function addMeetingLink(button) {
   currentButton = button;
 
-  // Create modal markup
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+
       <div class="modal-header">
-        <h3 id="modalTitle">Add Meeting Details</h3>
-        <p style="margin:0;color:#6b7280;font-size:.95rem;">Fill in the meeting information below</p>
+        <h3>Add Meeting Details</h3>
+        <p style="margin:0;color:#6b7280;font-size:.95rem;">Fill in the meeting info below</p>
       </div>
-      <div class="modal-input-group" style="margin-top:12px;">
-        <label for="meeting-time-input" style="font-weight:700;font-size:.92rem;">Meeting Time</label>
-        <input type="text" id="meeting-time-input" class="modal-input" placeholder="09:00 AM">
+
+      <div class="modal-input-group">
+        <label>Job Type</label>
+        <select id="job-type-select" class="modal-select-input">
+          <option value="">Select Job Type</option>
+        </select>
       </div>
-      <div class="modal-input-group" style="margin-top:8px;">
-        <label for="meeting-title-input" style="font-weight:700;font-size:.92rem;">Meeting Title</label>
+
+      <div class="modal-input-group">
+        <label>Meeting Time</label>
+        <input type="time" id="meeting-time-input" class="modal-input">
+      </div>
+
+      <div class="modal-input-group">
+        <label>Meeting Title</label>
         <input type="text" id="meeting-title-input" class="modal-input" placeholder="Team Meeting">
       </div>
-      <div class="modal-input-group" style="margin-top:8px;">
-        <label for="meeting-desc-input" style="font-weight:700;font-size:.92rem;">Description</label>
+
+      <div class="modal-input-group">
+        <label>Description</label>
         <input type="text" id="meeting-desc-input" class="modal-input" placeholder="Meeting description">
       </div>
-      <div class="modal-input-group" style="margin-top:8px;">
-        <label for="meeting-link-input" style="font-weight:700;font-size:.92rem;">Meeting Link</label>
+
+      <div class="modal-input-group">
+        <label>Meeting Link</label>
         <input type="url" id="meeting-link-input" class="modal-input" placeholder="https://meet.google.com/xxx-xxxx-xxx">
       </div>
+
       <div class="modal-actions">
-        <button class="modal-btn modal-btn-cancel" type="button" id="modalCancel">Cancel</button>
-        <button class="modal-btn modal-btn-save" type="button" id="modalSave">Save Meeting</button>
+        <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+        <button class="modal-btn modal-btn-save" id="modalSave">Save</button>
       </div>
     </div>
   `;
 
   document.body.appendChild(modal);
 
-  // focus first input
-  const timeInput = document.getElementById('meeting-time-input');
-  if (timeInput) timeInput.focus();
+  // UNIQUE JOB TYPES
+  const jobSelect = modal.querySelector('#job-type-select');
+  [...new Set(staffData.map(s => s.job_type))].forEach(job => {
+    jobSelect.innerHTML += `<option value="${job}">${job}</option>`;
+  });
 
-  // close on overlay click
-  modal.addEventListener('click', function(e) {
+  modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
 
-  // hook up buttons
   document.getElementById('modalCancel').addEventListener('click', closeModal);
   document.getElementById('modalSave').addEventListener('click', saveMeetingLink);
 }
@@ -152,83 +177,66 @@ function closeModal() {
   currentButton = null;
 }
 
+// URL validation
 function isValidUrl(value) {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
+  try { new URL(value); return true; }
+  catch { return false; }
 }
 
+// ======================= SAVE MEETING (AJAX TO DJANGO) ============================
 function saveMeetingLink() {
-  const timeInput = document.getElementById('meeting-time-input');
-  const titleInput = document.getElementById('meeting-title-input');
-  const descInput = document.getElementById('meeting-desc-input');
-  const linkInput = document.getElementById('meeting-link-input');
+  const jobType = document.getElementById('job-type-select').value.trim();
+  const time = document.getElementById('meeting-time-input').value.trim();
+  const title = document.getElementById('meeting-title-input').value.trim();
+  const desc = document.getElementById('meeting-desc-input').value.trim();
+  const link = document.getElementById('meeting-link-input').value.trim();
 
-  const time = timeInput ? timeInput.value.trim() : '';
-  const title = titleInput ? titleInput.value.trim() : '';
-  const desc = descInput ? descInput.value.trim() : '';
-  const link = linkInput ? linkInput.value.trim() : '';
-
-  // basic validation
-  if (!time || !title || !desc || !link) {
-    // short user feedback (could be improved)
-    alert('Please fill all fields.');
+  if (!jobType || !time || !title || !desc || !link) {
+    alert("Please fill all fields");
     return;
   }
 
   if (!isValidUrl(link)) {
-    alert('Please enter a valid URL (include http/https).');
+    alert("Enter valid URL");
     return;
   }
 
-  if (currentButton) {
-    const scheduleItem = currentButton.closest('.schedule-item');
-    const detailsDiv = scheduleItem.querySelector('.schedule-details');
-
-    if (detailsDiv) {
-      detailsDiv.innerHTML = `
-        <div class="schedule-time">${time}</div>
-        <div class="schedule-info">
-          <p class="schedule-title">${escapeHtml(title)}</p>
-          <p class="schedule-desc">${escapeHtml(desc)}</p>
-        </div>
-      `;
-      detailsDiv.classList.add('show');
+  // ================= AJAX SAVE =================
+  fetch("/accounts/save-meeting/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken")
+    },
+    body: JSON.stringify({
+      job_type: jobType,
+      meet_time: time,
+      meet_title: title,
+      meet_description: desc,
+      meet_link: link
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert("Meeting saved successfully!");
+      closeModal();
+    } else {
+      alert("Failed to save meeting.");
     }
-
-    const linkElement = document.createElement('a');
-    linkElement.href = link;
-    linkElement.target = '_blank';
-    linkElement.rel = 'noopener noreferrer';
-    linkElement.className = 'meet-link-btn has-link';
-    linkElement.innerHTML = `
-      <svg class="meet-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
-      </svg>
-      Join Meeting
-    `;
-
-    currentButton.parentNode.replaceChild(linkElement, currentButton);
-  }
-
-  closeModal();
+  })
+  .catch(err => console.error(err));
 }
 
-// simple HTML escape to prevent injection in inserted text nodes
-function escapeHtml(unsafe) {
-  return unsafe.replace(/[&<>"'`=\/]/g, function (s) {
-    return ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-      '/': '&#x2F;',
-      '`': '&#x60;',
-      '=': '&#x3D;'
-    })[s];
-  });
+// CSRF helper
+function getCookie(name) {
+  let cookieValue = null;
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.startsWith(name + "=")) {
+      cookieValue = cookie.substring(name.length + 1);
+    }
+  }
+  return cookieValue;
 }

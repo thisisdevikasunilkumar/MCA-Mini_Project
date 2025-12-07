@@ -16,7 +16,7 @@
             <h2>Staff Management</h2>
             <div class="top-bar">
                 <a href="{% url 'accounts:add_new_staff' %}">
-                    <button class="btn-primary">+ Add New Staff</button>
+                    <button class="btn btn-primary">+ Add New Staff</button>
                 </a>
                 <form method="GET" action="{% url 'accounts:admin_staff_management' %}">
                     <input type="text" placeholder="Search by Name, ID or Email...." class="staff-search-box" name="q" value="{{ query }}">
@@ -32,7 +32,7 @@
                 </ul>
             {% endif %}
             
-            <table>
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>Staff_ID</th>

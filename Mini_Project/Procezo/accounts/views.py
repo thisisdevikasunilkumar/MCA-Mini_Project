@@ -1,4 +1,7 @@
-from datetime import date, timedelta
+import pytz
+from django.utils import timezone
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 import os
 import shutil
 import base64, io, uuid, json
@@ -18,9 +21,24 @@ from django.core.files.storage import default_storage
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
-from .models import Staff, Register, Attendance
+from .models import Staff, Register, Attendance, GoogleMeet
 from .forms import StaffRegisterForm
 from .utils_face import pil_from_base64, count_faces, get_embedding_from_pil, save_base64_to_contentfile, cosine_similarity_vec, compare_two_images
+
+# ---------------- Timezone helpers ----------------
+INDIA_TZ = pytz.timezone("Asia/Kolkata")
+
+def now_india():
+    """Return timezone-aware datetime in Asia/Kolkata."""
+    return timezone.now().astimezone(INDIA_TZ)
+
+def today_india():
+    """Return date in Asia/Kolkata."""
+    return now_india().date()
+
+def time_india():
+    """Return time() in Asia/Kolkata."""
+    return now_india().time()
 
 # Render main page
 def main_page(request):
@@ -169,14 +187,14 @@ def register_staff(request):
         return redirect("accounts:login_register")
 
 
-# Face login API (POST)    
+# ---------------- Face login (check-in) ----------------
 @csrf_exempt
 def api_face_login(request):
     try:
         body = request.body.decode('utf-8') or "{}"
         data = json.loads(body)
         img_b64 = data.get('image')
-        email = data.get('email')  # optional
+        email = data.get('email')
 
         if not img_b64:
             return JsonResponse({"success": False, "error": "No image provided"})
@@ -185,72 +203,115 @@ def api_face_login(request):
         if pil is None:
             return JsonResponse({"success": False, "error": "Invalid image"})
 
-        if count_faces(pil) != 1:
-            return JsonResponse({"success": False, "error": f"Require exactly 1 face. Found: {count_faces(pil)}"})
+        faces = count_faces(pil)
+        if faces != 1:
+            return JsonResponse({"success": False, "error": f"Require exactly 1 face. Found: {faces}"})
 
         emb = get_embedding_from_pil(pil)
         if emb is None:
             return JsonResponse({"success": False, "error": "Could not compute embedding"})
 
-        threshold = float(getattr(settings, 'FACE_SIMILARITY_THRESHOLD', 0.60))
+        threshold = float(getattr(request, 'FACE_SIMILARITY_THRESHOLD', 0.60))
+        staff = None
 
-        # If email provided -> check only that user
+        # Authentication Logic
         if email:
             try:
-                staff = Register.objects.get(email=email)
+                register_instance = Register.objects.get(email=email)
+                staff = register_instance.staff
             except Register.DoesNotExist:
                 return JsonResponse({"success": False, "error": "No account with that email"})
 
-            if not staff.face_embedding:
+            if not getattr(register_instance, "face_embedding", None):
                 return JsonResponse({"success": False, "error": "No face registered for this account"})
 
-            raw_emb = staff.face_embedding
+            raw_emb = register_instance.face_embedding
             stored = json.loads(raw_emb) if isinstance(raw_emb, str) else raw_emb
             sim = cosine_similarity_vec(emb, stored)
-            if sim >= threshold:
-                # login success: set session, attendance, redirect
-                request.session['staff_id'] = staff.staff.staff_id
-                request.session['staff_role'] = staff.role.lower()
-                today = timezone.localdate()
-                att, _ = Attendance.objects.get_or_create(staff=staff.staff, date=today)
-                if not att.check_in:
-                    att.check_in = timezone.localtime().time()
-                    att.save()
-                redirect_url = reverse('accounts:staff_dashboard') if staff.role.lower() == 'staff' else reverse('accounts:admin_dashboard')
-                return JsonResponse({"success": True, "redirect": redirect_url, "name": staff.name})
-            else:
+            if sim < threshold:
                 return JsonResponse({"success": False, "error": "Face did not match."})
 
-        # No email provided: search all candidates
-        candidates = Register.objects.exclude(face_embedding__isnull=True).exclude(face_embedding__exact='')
-        best_staff = None
-        best_sim = -1.0
-        for s in candidates:
-            raw_emb = s.face_embedding
-            try:
-                stored = json.loads(raw_emb) if isinstance(raw_emb, str) else raw_emb
-            except Exception:
-                continue
-            sim = cosine_similarity_vec(emb, stored)
-            if sim > best_sim:
-                best_sim = sim
-                best_staff = s
+        else:
+            candidates = Register.objects.exclude(face_embedding__isnull=True).exclude(face_embedding__exact='')
+            best_staff_register = None
+            best_sim = -1.0
+            for r in candidates:
+                raw_emb = r.face_embedding
+                try:
+                    stored = json.loads(raw_emb) if isinstance(raw_emb, str) else raw_emb
+                except Exception:
+                    continue
+                sim = cosine_similarity_vec(emb, stored)
+                if sim > best_sim:
+                    best_sim = sim
+                    best_staff_register = r
 
-        if best_staff and best_sim >= threshold:
-            staff = best_staff
-            request.session['staff_id'] = staff.staff_id
-            request.session['staff_role'] = staff.role.lower()
-            today = timezone.localdate()
-            att, _ = Attendance.objects.get_or_create(staff=staff, date=today)
-            if not att.check_in:
-                att.check_in = timezone.localtime().time()
-                att.save()
-            redirect_url = reverse('accounts:staff_dashboard') if staff.role.lower() == 'staff' else reverse('accounts:admin_dashboard')
-            return JsonResponse({"success": True, "redirect": redirect_url, "name": staff.name})
+            if best_staff_register and best_sim >= threshold:
+                staff = best_staff_register.staff
+            else:
+                return JsonResponse({"success": False, "error": "No matching user found."})
 
-        return JsonResponse({"success": False, "error": "No matching user found."})
+        # Attendance Logic (Check-In)
+        current_time = time_india()         # India-local time
+        today = today_india()
+
+        # Determine Late: compare staff.check_in (admin-set schedule) with current_time
+        is_late = False
+        if staff.check_in:  # admin-set required check_in time
+            # give 10 minute grace
+            req_dt = datetime.combine(today, staff.check_in).astimezone(INDIA_TZ)
+            actual_dt = datetime.combine(today, current_time).astimezone(INDIA_TZ)
+            grace_end = req_dt + timedelta(minutes=10)
+            if actual_dt > grace_end:
+                is_late = True
+
+        # Create rows per the rules:
+        # - Late: create a 'Late' row (with check_in), then create 'Active' row (check_out null)
+        # - On-time: create only an 'Active' row
+        if is_late:
+            # Late incident row
+            Attendance.objects.create(
+                staff=staff,
+                date=today,
+                check_in=current_time,
+                check_out=None,
+                status='Late',
+                overtime_hours=Decimal('0.00')
+            )
+
+            # Active session row
+            att = Attendance.objects.create(
+                staff=staff,
+                date=today,
+                check_in=current_time,
+                check_out=None,
+                status='Active',
+                overtime_hours=Decimal('0.00')
+            )
+            final_status = 'Late/Active'
+        else:
+            att = Attendance.objects.create(
+                staff=staff,
+                date=today,
+                check_in=current_time,
+                check_out=None,
+                status='Active',
+                overtime_hours=Decimal('0.00')
+            )
+            final_status = 'Active'
+
+        # store session info for convenience
+        request.session['staff_id'] = staff.staff_id
+        request.session['staff_role'] = staff.role.lower()
+        request.session['is_active'] = True
+
+        redirect_url = reverse('accounts:staff_dashboard') if staff.role.lower() == 'staff' else reverse('accounts:admin_dashboard')
+
+        return JsonResponse({"success": True, "redirect": redirect_url, "name": staff.name, "status": final_status})
+
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+
 
 # Password login (POST)
 @csrf_exempt
@@ -294,40 +355,168 @@ def api_login_with_password(request):
             return JsonResponse({"success": False, "error": "Invalid credentials."})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
-    
+
+
+# ---------------- Overtime calculation ----------------
+def calculate_overtime(required_checkout_time, actual_checkout_time):
+    """
+    required_checkout_time: python datetime.time or None
+    actual_checkout_time: python datetime.time
+    Returns decimal hours rounded to 2 decimals.
+    """
+    if not required_checkout_time:
+        return Decimal('0.00')
+
+    # convert to datetimes on the same arbitrary date
+    dt_required = datetime.combine(datetime.today(), required_checkout_time)
+    dt_actual = datetime.combine(datetime.today(), actual_checkout_time)
+
+    if dt_actual > dt_required:
+        overtime_td = dt_actual - dt_required
+        overtime_hours = Decimal(overtime_td.total_seconds() / 3600).quantize(Decimal('0.01'))
+        return overtime_hours
+    return Decimal('0.00')
+
+@csrf_exempt
+def api_face_logout(request):
+    try:
+        body = request.body.decode('utf-8') or "{}"
+        data = json.loads(body)
+        email = data.get('email')
+        staff = None
+
+        # Identify staff (email or session)
+        if email:
+            try:
+                staff = Register.objects.get(email=email).staff
+            except Register.DoesNotExist:
+                return JsonResponse({"success": False, "error": "User not found with that email."})
+        elif 'staff_id' in request.session:
+            staff_id = request.session.get('staff_id')
+            staff = Staff.objects.get(staff_id=staff_id)
+        else:
+            return JsonResponse({"success": False, "error": "Authentication required for check-out (No email or session ID)."})
+
+        today = today_india()
+        current_time = time_india()
+
+        # Find the most recent Active session (latest check_in) for today
+        active_qs = Attendance.objects.filter(
+            staff=staff,
+            date=today,
+            status='Active',
+            check_out__isnull=True
+        ).order_by('-check_in')
+        active_att = active_qs.first()
+        if not active_att:
+            return JsonResponse({"success": False, "error": "No active Check-In record found for today. Please Check In first."})
+
+        # Calculate overtime using staff.required check_out (if set)
+        overtime_amount = Decimal('0.00')
+        if staff.check_out:
+            overtime_amount = calculate_overtime(staff.check_out, current_time)
+
+        # 1) Create NEW 'Inactive' row (per your requirement)
+        new_att = Attendance.objects.create(
+            staff=staff,
+            date=today,
+            check_in=active_att.check_in,
+            check_out=current_time,
+            status='Inactive',
+            overtime_hours=overtime_amount
+        )
+
+        # 2) ALSO update the Active row's check_out so both rows show check_out (user wanted that)
+        #    (This preserves the original 'Active' row but records its check_out timestamp.)
+        active_att.check_out = current_time
+        # Optionally you might want to keep Active status (still 'Active') or mark something else.
+        # We'll leave its status as 'Active' but now with a check_out for visibility.
+        active_att.save(update_fields=['check_out'])
+
+        # Clear session variables
+        for key in ('staff_id', 'staff_role', 'is_active'):
+            if key in request.session:
+                del request.session[key]
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Checked out at {new_att.check_out}. Overtime: {new_att.overtime_hours} hours.",
+            "checkout_time": str(new_att.check_out),
+            "status": new_att.status,
+            "overtime_hours": float(new_att.overtime_hours)
+        })
+
+    except Staff.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Staff profile not found."})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
 # ..............................................................
 # -------------------- Admin Dashboard URLs --------------------
 # ..............................................................
 
 def admin_dashboard(request):
-    today = date.today()
+    # ---------------------------------------------
+    # DATE HANDLING
+    # ---------------------------------------------
+    today = today_india()                 # <-- Updated
     tomorrow = today + timedelta(days=1)
     next_week = today + timedelta(days=7)
 
-    # Upcoming birthdays (next 7 days)
+    # ---------------------------------------------
+    # SCHEDULED MEETINGS (store & query naive India-local datetimes because USE_TZ=False)
+    # ---------------------------------------------
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
+    todays_meetings = GoogleMeet.objects.filter(meet_time__range=(start_of_day, end_of_day)).order_by('meet_time')
+
+    # ---------------------------------------------
+    # UPCOMING BIRTHDAYS (next 7 days)
+    # ---------------------------------------------
     upcoming_birthdays = Register.objects.filter(
         Q(dob__month=today.month, dob__day__gte=today.day) |
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).order_by('dob__month', 'dob__day')[:5]
 
-    # Birthdays this week (count only)
+    # BIRTHDAY COUNT THIS WEEK
     birthday_this_week_count = Register.objects.filter(
         Q(dob__month=today.month, dob__day__gte=today.day) |
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).count()
 
-    # Staff details
-    recent_staff = Staff.objects.order_by('-created_at')[:5] # <-- last 5 created accounts
-    staff_count = Staff.objects.count() # <-- total staff count
+    # ---------------------------------------------
+    # STAFF DETAILS
+    # ---------------------------------------------
+    recent_staff = Staff.objects.order_by('-created_at')[:5]
+    staff_count = Staff.objects.count()
 
-    return render(request, 'admin/Admin Dashboard.html', {
+    # ---------------------------------------------
+    # ATTENDANCE COUNTS
+    # ---------------------------------------------
+    active_count = Attendance.objects.filter(date=today, status='Active').count()
+    inactive_count = Attendance.objects.filter(date=today, status='Inactive').count()
+    late_count = Attendance.objects.filter(date=today, status='Late').count()
+    
+    register_list = Register.objects.select_related("staff").all()
+    # ---------------------------------------------
+    # CONTEXT
+    # ---------------------------------------------
+    context = {
         'recent_staff': recent_staff,
         'staff_count': staff_count,
         'upcoming_birthdays': upcoming_birthdays,
         'birthday_this_week_count': birthday_this_week_count,
         'today': today,
-        'tomorrow': tomorrow
-    })
+        'tomorrow': tomorrow,
+        "stats": {
+            "active_today": active_count,
+            "inactive_today": inactive_count,
+            "late_today": late_count,
+        },
+        "register_list": register_list,
+        "todays_meetings": todays_meetings,
+    }
+    return render(request, 'admin/Admin Dashboard.html', context)
 
 # Admin staff search view
 def admin_staff_search(request):
@@ -345,6 +534,60 @@ def admin_staff_search(request):
         "results": results,
         "query": query,
     })
+
+@csrf_exempt
+def save_meeting(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False})
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+
+        job_type = data["job_type"]
+        meet_time = data["meet_time"].strip()   # always HH:MM (24-hour)
+        title = data["meet_title"]
+        desc = data["meet_description"]
+        link = data["meet_link"]
+
+        from datetime import datetime
+        import pytz
+
+        # ----------------------------------------------------------
+        # 1) Parse ONLY 24-hour format ("HH:MM")
+        # ----------------------------------------------------------
+        try:
+            time_obj = datetime.strptime(meet_time, "%H:%M").time()
+        except:
+            raise ValueError("Time must be in 24-hour format (e.g., 16:15)")
+
+        # ----------------------------------------------------------
+        # 2) Today's India date
+        # ----------------------------------------------------------
+        ist = pytz.timezone("Asia/Kolkata")
+        today_india = datetime.now(ist).date()
+
+        # ----------------------------------------------------------
+        # 3) Combine date + time → save as naive datetime
+        # ----------------------------------------------------------
+        final_datetime = datetime.combine(today_india, time_obj)
+
+        # ----------------------------------------------------------
+        # 4) Save to DB
+        # ----------------------------------------------------------
+        GoogleMeet.objects.create(
+            job_type=job_type,
+            meet_time=final_datetime,
+            meet_title=title,
+            meet_description=desc,
+            meet_link=link,
+        )
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        print("ERROR:", e)
+        return JsonResponse({"success": False, "error": str(e)})
+
 
 # Admin staff management view
 def admin_staff_management(request):
@@ -540,7 +783,92 @@ def delete_staff(request, staff_id):
     return redirect("accounts:admin_staff_management")
 
 def admin_attendance_management(request):
-    return render(request, "admin/Attendance Management.html")
+    # Fetch all staff
+    staff_list = Staff.objects.all()
+    # Fetch all attendance records
+    attendance_list = Attendance.objects.select_related("staff").order_by('-date', '-attendance_id')
+
+    today = today_india()
+    # Counts
+    active_count = Attendance.objects.filter(date=today, status='Active').count()
+    inactive_count = Attendance.objects.filter(date=today, status='Inactive').count()
+    late_count = Attendance.objects.filter(date=today, status='Late').count()
+
+    context = {
+        "staff_list": staff_list,
+        "attendance_list": attendance_list,
+        "stats": {
+            "active_today": active_count,
+            "inactive_today": inactive_count,
+            "late_today": late_count,
+        }
+    }
+    return render(request, "admin/Attendance Management.html", context)
+
+@csrf_exempt
+def save_attendanceTime_to_staff(request):
+    if request.method == "POST":
+        if not request.body:
+            return JsonResponse({"success": False, "error": "No data provided"})
+            
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON format"})
+
+        staff_id = data.get("staffId")
+        check_in = data.get("checkIn") # HH:MM format from JS
+        check_out = data.get("checkOut") # HH:MM format from JS
+            
+        if not staff_id:
+            return JsonResponse({"success": False, "error": "Staff ID is missing"})
+
+        try:
+            staff = Staff.objects.get(staff_id=staff_id)
+                
+            if check_in is not None:
+                staff.check_in = check_in
+            if check_out is not None:
+                staff.check_out = check_out
+                    
+            staff.save()
+
+            staff_email = staff.email
+            staff_name = staff.name
+
+            html_content = f"""
+            <p>Dear <b>{staff_name}</b>,</p>
+            <p>Your attendance time has been successfully <b>saved/set</b> in the system.</p>
+            <p>This is the required time you should login.</p>
+            <p><b>Your Scheduled Times:</b></p>
+            <ul>
+                <li><b>Staff ID:</b> <span style="color:black;">{staff_id}</span></li>
+                <li><b>Check-In Time:</b> <span style="color:green;">{check_in or 'Not Set'}</span></li>
+                <li><b>Check-Out Time:</b> <span style="color:green;">{check_out or 'Not Set'}</span></li>
+            </ul>
+            <p>If you have any queries, please contact the admin team.</p>
+            <p>Regards,<br>Admin Team</p>
+            """
+
+            text_content = strip_tags(html_content)
+
+            email_message = EmailMultiAlternatives(
+                subject="Attendance Time Set Confirmation",
+                body=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[staff_email]
+            )
+            email_message.attach_alternative(html_content, "text/html")
+            email_message.send()
+
+            return JsonResponse({"success": True})
+        
+        except Staff.DoesNotExist:
+            return JsonResponse({"success": False, "error": f"Staff with ID {staff_id} not found"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": f"Operation error: {str(e)}"})
+
+    return JsonResponse({"success": False, "error": "Invalid request method. Only POST is allowed"})
 
 def admin_emotion_management(request):
     return render(request, "admin/Emotion Management.html")
@@ -557,26 +885,31 @@ def staff_dashboard(request):
     
     staff = get_object_or_404(Staff, staff_id=staff_id)
 
-    today = timezone.localdate()
+    today = today_india()
     next_week = today + timedelta(days=7)
 
-    # Today's attendance
+    # ------------ Attendance ------------
     attendance = Attendance.objects.filter(
         staff=staff,
         date=today
     ).first()
 
-    # Birthdays this week (count)
+    # ------------ Birthday (this week) ------------
     birthday_this_week_count = Register.objects.filter(
         Q(dob__month=today.month, dob__day__gte=today.day) |
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).count()
 
-    # Or if you want the actual list (optional)
     birthday_this_week_list = Register.objects.filter(
         Q(dob__month=today.month, dob__day__gte=today.day) |
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).order_by('dob__month', 'dob__day')
+
+    # ----------- Filter GoogleMeet by staff.job_type -----------
+    todays_meets = GoogleMeet.objects.filter(
+        meet_time__date=today,
+        job_type=staff.job_type  # <--- Only show matching job_type
+    ).order_by('meet_time')
 
     return render(
         request,
@@ -585,7 +918,8 @@ def staff_dashboard(request):
             'staff': staff,
             'attendance': attendance,
             'birthday_this_week_count': birthday_this_week_count,
-            'birthday_this_week_list': birthday_this_week_list
+            'birthday_this_week_list': birthday_this_week_list,
+            'todays_meets': todays_meets
         }
     )
 
@@ -635,14 +969,59 @@ def staff_profile(request):
 
 # Staff attendance view
 def staff_attendance(request):
+    # Imports like 'from django.shortcuts import render, get_object_or_404'
+    # and 'from django.utils import timezone' are assumed
+    
+    today = date.today()
+    first_day_of_month = today.replace(day=1)
+
     staff = None
+    attendance_records = []
+    attendance_map = {}
+    
+    # Initialize counts
+    monthly_active_count = 0
+    monthly_inactive_count = 0
+    monthly_late_count = 0
+
     staff_id = request.session.get('staff_id')
+
     if staff_id:
+        # Fetch staff object
         staff = get_object_or_404(Staff, staff_id=staff_id)
+        
+        # Filter attendance for the current month up to today
+        monthly_attendance = Attendance.objects.filter(
+            staff=staff,
+            date__gte=first_day_of_month,
+            date__lte=today
+        ).order_by('-check_in')
+        
+        # Calculate counts
+        monthly_active_count = monthly_attendance.filter(status='Active').count()
+        monthly_inactive_count = monthly_attendance.filter(status='Inactive').count()
+        monthly_late_count = monthly_attendance.filter(status='Late').count()
+        
+        # Set attendance records for the list view
+        attendance_records = monthly_attendance
+        
+        # Build dictionary: { day: "Status" } for calendar view
+        for record in monthly_attendance:
+            attendance_map[record.date.day] = record.status
+            
+    # Note: The 'else' block for staff_id not present is handled by the initial
+    # values (staff=None and counts=0)
+            
     context = {
-        'staff': staff
+        'staff': staff,
+        'attendance_records': attendance_records,  # List of records (latest first)
+        'attendance_map': attendance_map,          # Map {day: status} for calendar
+        'monthly_active_count': monthly_active_count,
+        'monthly_inactive_count': monthly_inactive_count,
+        'monthly_late_count': monthly_late_count,
     }
-    return render(request, 'staff/Attendance.html',context) 
+    
+    return render(request, 'staff/Attendance.html', context)
 
 def staff_emotion(request):
     staff = None

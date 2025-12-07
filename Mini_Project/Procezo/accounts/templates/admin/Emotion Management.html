@@ -1,7 +1,7 @@
 {% extends 'admin/Admin Dashboard.html' %}
 {% load static %}
 
-{% block title %}Staff Management{% endblock %}
+{% block title %}Emotion Management{% endblock %}
 
 {% block extrastyle %}
 <!-- Dashboard base CSS -->
@@ -14,8 +14,28 @@
 <!-- Emotion Page -->
 <div class="main">
   <div class="container">
-    <h2>Emotion Tracking</h2>
-    <p>Monitor team mood and wellbeing</p>
+    <h2>Emotion Management</h2>
+    <p>Track and manage staff emotion records</p>
+
+    <div class="emotion-stats-grid">
+      <div class="emotion-stat-card">
+        <div class="stat-icon">😊</div>
+        <div class="stat-value">78%</div>
+        <div class="stat-label">Positive Today</div>
+      </div>
+
+      <div class="emotion-stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-value">+12%</div>
+        <div class="stat-label">vs Last Week</div>
+      </div>
+
+      <div class="emotion-stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">124</div>
+        <div class="stat-label">Responses</div>
+      </div>
+    </div>
 
     <div>
       <div class="card-header">
@@ -69,7 +89,7 @@
           <table>
             <thead>
               <tr>
-                <th>Employee</th>
+                <th>Staff</th>
                 <th>Status</th>
                 <th>Productivity</th>
                 <th>Feedback</th>

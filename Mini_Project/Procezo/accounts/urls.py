@@ -13,7 +13,7 @@ urlpatterns = [
     path('api/face-login/', views.api_face_login, name='api_face_login'),
     path('api_login_with_password/', views.api_login_with_password, name='api_login_with_password'),
 
-
+    path('api/face_logout/', views.api_face_logout, name='api_face_logout'),
 
     # ..............................................................
     # -------------------- Admin Dashboard URLs --------------------
@@ -21,12 +21,17 @@ urlpatterns = [
 
     path('adminDashboard/', views.admin_dashboard, name='admin_dashboard'),  
     path('staff/search/', views.admin_staff_search, name='admin_staff_search'),
+    path("save-meeting/", views.save_meeting, name="save_meeting"),
 
     path('adminstaffManagement/', views.admin_staff_management, name='admin_staff_management'),
+
     path('AddNewstaff/', views.add_new_staff, name='add_new_staff'), 
     path("staff/update/<str:staff_id>/", views.update_staff, name="update_staff"),
     path("staff/delete/<str:staff_id>/", views.delete_staff, name="delete_staff"),
+
     path('adminAttendanceManagement/', views.admin_attendance_management, name='admin_attendance_management'),
+    path('save-attendanceTime/', views.save_attendanceTime_to_staff, name='save_attendanceTime'),
+    
     path('adminEmotionManagement/', views.admin_emotion_management, name='admin_emotion_management'),
 
 

@@ -64,17 +64,19 @@
           </div>         
         </div>
         
-        <a href="{% url 'accounts:login_register' %}">
-          <button class="logout-btn">
-            <div class="sign">
-              <svg viewBox="0 0 512 512">
-                <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
-              </svg>
-            </div>
-            <div class="logout-btn-text">Logout</div>
-          </button>
-        </a>
+        <button class="logout-btn" id="logout-button" data-logout-url="{% url 'accounts:api_face_logout' %}" data-login-url="{% url 'accounts:login_register' %}" onclick="handleCheckOut()">
+          <div class="sign">
+            <svg viewBox="0 0 512 512">
+              <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/>
+            </svg>
+          </div>
+          <div class="logout-btn-text">Logout</div>
+        </button>
+
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        <input type="hidden" id="userEmail" value="{{ staff.email|default:'' }}">
       </header>
+      
       {% block content %}
       <!-- ====== Stats Grid ====== -->
       <div class="stats-grid">
@@ -138,77 +140,83 @@
         </div>
 
         <!-- Announcements Card -->
-        <div class="content-grid-card" id="announcementsCard">
-          <div class="card-header">
-            <h2 id="announcementsTitle">Announcements</h2>
-          </div>
+      <div class="content-grid-card" id="announcementsCard">
+        <div class="card-header">
+            <h2 id="announcementsTitle">🎂 Upcoming Birthdays</h2>
+        </div>
 
-          <div class="announcement-item" id="announcement1">
-            <div class="announcement-title">Office Closure</div>
-            <div class="announcement-time">2 hours ago</div>
-          </div>
+        <div class="birthday-list">
+            {% for b in upcoming_birthdays %}
+            <div class="birthday-item">
+                <div class="birthday-avatar">
+                    {{ b.name|slice:":1" }}{{ b.name|slice:"1:2" }}
+                </div>
 
-          <div class="announcement-item" id="announcement2">
-            <div class="announcement-title">New Policy Update</div>
-            <div class="announcement-time">Yesterday</div>
-          </div>
+                <div class="birthday-info">
+                    <p class="birthday-name">{{ b.name }}</p>
 
-          <div class="announcement-item" id="announcement3">
-            <div class="announcement-title">Team Building Event</div>
-            <div class="announcement-time">2 days ago</div>
-          </div>
+                    {% if b.dob.month == today.month and b.dob.day == today.day %}
+                        <p class="birthday-date">Today - {{ b.dob|date:"M d" }}</p>
+                    {% elif b.dob.month == tomorrow.month and b.dob.day == tomorrow.day %}
+                        <p class="birthday-date">Tomorrow - {{ b.dob|date:"M d" }}</p>
+                    {% else %}
+                        <p class="birthday-date">{{ b.dob|date:"M d" }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="birthday-icon">🎉</div>
+            </div>
+            {% empty %}
+            <p style="padding: 20px;">No upcoming birthdays 🎈</p>
+            {% endfor %}
         </div>
       </div>
 
       <!-- ====== Schedule ====== -->
-      <div class="schedule-card">
-        <div class="schedule-header">
-          <h2>Today's Schedule</h2>
-          <a href="https://calendar.google.com" target="_blank" class="view-btn">
+<!-- ====== Schedule ====== -->
+<div class="schedule-card">
+    <div class="schedule-header">
+        <h2>Today's Schedule</h2>
+        <a href="https://calendar.google.com" target="_blank" class="view-btn">
             View Calendar
-          </a>
-        </div>
-
-        <div class="schedule-grid">
-
-          <!-- Item 1 -->
-          <div class="schedule-item">
-            <div class="schedule-time">9:00 AM</div>
-            <div class="schedule-divider"></div>
-            <div class="schedule-details">
-              <h4>Morning Standup</h4>
-              <p>Daily team sync - Conference Room A</p>
-              <a href="#" class="meet-link">📹 Join Google Meet</a>
-            </div>
-          </div>
-
-          <!-- Item 2 -->
-          <div class="schedule-item">
-            <div class="schedule-time">11:00 AM</div>
-            <div class="schedule-divider"></div>
-            <div class="schedule-details">
-              <h4>Client Presentation</h4>
-              <p>Q1 Results Review - Virtual Meeting</p>
-              <a href="#" class="meet-link">📹 Join Google Meet</a>
-            </div>
-          </div>
-
-          <!-- Item 3 -->
-          <div class="schedule-item">
-            <div class="schedule-time">2:00 PM</div>
-            <div class="schedule-divider"></div>
-            <div class="schedule-details">
-              <h4>Project Planning</h4>
-              <p>New initiative kickoff - Conference Room B</p>
-              <a href="#" class="meet-link">📹 Join Google Meet</a>
-            </div>
-          </div>
-
-        </div>
-      </div>
+        </a>
     </div>
-    <script src="js/StaffDashboard.js"></script>
-      {% endblock %}
+
+    <div class="schedule-grid">
+
+        {% if todays_meets %}
+            {% for meet in todays_meets %}
+            <div class="schedule-item">
+                <div class="schedule-time">
+                    {{ meet.meet_time|date:"g:i A" }}
+                </div>
+
+                <div class="schedule-divider"></div>
+
+                <div class="schedule-details">
+                    <h4>{{ meet.meet_title }}</h4>
+                    <p>{{ meet.meet_description }}</p>
+
+                    {% if meet.meet_link %}
+                        <a href="{{ meet.meet_link }}" class="meet-link" target="_blank">
+                            📹 Join Google Meet
+                        </a>
+                    {% else %}
+                        <span class="no-link">No meeting link</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="padding: 15px;">No meetings scheduled for today.</p>
+        {% endif %}
+
+    </div>
+</div>
+
+    </div>
+    <script src="{% static 'js/staff/StaffDashboard.js' %}"></script>
+    {% endblock %}
     </div>       
   </body>
 </html>
