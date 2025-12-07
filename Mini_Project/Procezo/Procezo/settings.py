@@ -86,10 +86,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# Store datetimes as local (India) naive datetimes in DB per user request
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
-USE_TZ = True
+# Disable Django timezone-awareness so DB stores naive local datetimes
+USE_TZ = False
 
 
 # STATIC FILES
