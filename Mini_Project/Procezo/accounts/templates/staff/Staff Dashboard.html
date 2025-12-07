@@ -61,6 +61,38 @@
           <div class="title-row">
             <h1>Staff Dashboard <span class="role-tag">{{ staff.name|default:"Staff" }}</span></h2>
             <a href="{% url 'accounts:staff_dashboard' %}"><img src="{% static 'image/dashboard/AdminHome.png' %}" alt="search" class="home-icon" /></a>
+            <!-- Camera Screen -->
+            <div class="camera-screen">
+              <header class="camera-header">
+                <h1 id="camera-title" class="camera-title">Live Camera</h1>
+                <div class="live-indicator"><span class="live-dot"></span> <span class="live-text">Live</span>
+                </div>
+              </header>
+              <div class="camera-viewport"><!-- Live video feed -->
+                <video id="camera-video" autoplay playsinline muted></video><!-- Error message (hidden by default) -->
+                <div id="camera-error" class="camera-error" style="display: none;">
+                <svg class="error-icon" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9V11M12 15H12.01M5.07 19H18.93C20.14 19 21 17.94 20.49 16.86L13.56 4.14C13.05 3.06 11.95 3.06 11.44 4.14L4.51 16.86C4 17.94 4.86 19 5.07 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <p class="error-text">Camera access denied or unavailable</p><button id="retry-button" class="retry-button">Retry</button>
+                </div><!-- Scanning line effect -->
+                <div class="scan-line"></div><!-- Corner brackets -->
+                <div class="corner-bracket top-left"></div>
+                <div class="corner-bracket top-right"></div>
+                <div class="corner-bracket bottom-left"></div>
+                <div class="corner-bracket bottom-right"></div><!-- Center focus -->
+                <div class="camera-focus"></div><!-- Timestamp -->
+                <div class="camera-timestamp" id="timestamp">
+                  <!-- 00:00:00 -->
+                </div>
+                <!-- Camera toggle button --> 
+                <button id="camera-toggle" class="camera-toggle" aria-label="Toggle camera">
+                  <svg class="toggle-icon" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M23 7L16 12L23 17V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" /> <rect x="1" y="5" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span id="toggle-text">ON</span> 
+                </button>
+              </div>
+            </div>              
           </div>         
         </div>
         
@@ -173,47 +205,40 @@
       </div>
 
       <!-- ====== Schedule ====== -->
-<!-- ====== Schedule ====== -->
-<div class="schedule-card">
-    <div class="schedule-header">
-        <h2>Today's Schedule</h2>
-        <a href="https://calendar.google.com" target="_blank" class="view-btn">
-            View Calendar
-        </a>
-    </div>
+      <div class="schedule-card">
+          <div class="schedule-header">
+              <h2>Today's Schedule</h2>
+              <a href="https://calendar.google.com" target="_blank" class="view-btn">
+                  View Calendar
+              </a>
+          </div>
 
-    <div class="schedule-grid">
-
-        {% if todays_meets %}
-            {% for meet in todays_meets %}
-            <div class="schedule-item">
-                <div class="schedule-time">
-                    {{ meet.meet_time|date:"g:i A" }}
-                </div>
-
-                <div class="schedule-divider"></div>
-
-                <div class="schedule-details">
-                    <h4>{{ meet.meet_title }}</h4>
-                    <p>{{ meet.meet_description }}</p>
-
-                    {% if meet.meet_link %}
-                        <a href="{{ meet.meet_link }}" class="meet-link" target="_blank">
-                            📹 Join Google Meet
-                        </a>
-                    {% else %}
-                        <span class="no-link">No meeting link</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <p style="padding: 15px;">No meetings scheduled for today.</p>
-        {% endif %}
-
-    </div>
-</div>
-
+          <div class="schedule-grid">
+              {% if todays_meets %}
+                  {% for meet in todays_meets %}
+                  <div class="schedule-item">
+                      <div class="schedule-time">
+                          {{ meet.meet_time|date:"g:i A" }}
+                      </div>
+                      <div class="schedule-divider"></div>
+                      <div class="schedule-details">
+                          <h4>{{ meet.meet_title }}</h4>
+                          <p>{{ meet.meet_description }}</p>
+                          {% if meet.meet_link %}
+                              <a href="{{ meet.meet_link }}" class="meet-link" target="_blank">
+                                  📹 Join Google Meet
+                              </a>
+                          {% else %}
+                              <span class="no-link">No meeting link</span>
+                          {% endif %}
+                      </div>
+                  </div>
+                  {% endfor %}
+              {% else %}
+                  <p style="padding: 15px;">No meetings scheduled for today.</p>
+              {% endif %}
+          </div>
+      </div>
     </div>
     <script src="{% static 'js/staff/StaffDashboard.js' %}"></script>
     {% endblock %}
