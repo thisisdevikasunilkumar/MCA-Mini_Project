@@ -562,9 +562,6 @@ def save_meeting(request):
         desc = data["meet_description"]
         link = data["meet_link"]
 
-        from datetime import datetime
-        import pytz
-
         # ----------------------------------------------------------
         # 1) Parse ONLY 24-hour format ("HH:MM")
         # ----------------------------------------------------------
@@ -594,7 +591,6 @@ def save_meeting(request):
             meet_description=desc,
             meet_link=link,
         )
-
         return JsonResponse({"success": True})
 
     except Exception as e:
