@@ -1,0 +1,153 @@
+{% extends 'admin/Admin Dashboard.html' %}
+{% load static %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/admin/AdminDashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/admin/WorkSchedule.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="ws-container">
+    <header class="ws-header-bar">
+        <h1 class="ws-title">Work Schedules</h1>
+        <div class="ws-date-navigation">
+            <div id="rangeLabel" class="calendar-range-label">Mon, December 1, 2025 - Sun, December 7, 2025</div>
+            <div class="nav-buttons-group">
+                <button id="prevBtn" class="nav-button icon-btn">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button id="nextBtn" class="nav-button icon-btn">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="ws-toolbar-controls">
+        <div class="toolbar-left">
+            <select id="staffFilter" class="ws-select filter-select">
+                <option value="ALL">All team members</option>
+                {% for s in staff_list %}
+                <option value="{{ s.staff_id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="toolbar-center">
+            <button id="openAddBtn" class="btn btn-primary btn-add-schedule">+ Add schedule</button>
+        </div>
+
+        <div class="toolbar-right">
+            <div id="viewToggleGroup" class="view-toggle-group">
+                <button class="btn btn-view active" data-view="week">Week</button>
+                <button class="btn btn-view" data-view="month">Month</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ws-scheduling-area">
+    <div class="team-tabs">
+        <button class="tab-button active" data-job="ALL">All team members</button>
+        <button class="tab-button" data-job="HR">HR</button>
+        <button class="tab-button" data-job="Finance">Finance</button>
+        <button class="tab-button" data-job="Sales">Sales</button>
+        <button class="tab-button" data-job="Marketing">Marketing</button>
+        <button class="tab-button" data-job="Operations">Operations</button>
+        <button class="tab-button" data-job="IT Support">IT Support</button>
+    </div>
+    
+    </div>
+
+        <div id="calendar" class="calendar-grid-container">
+        </div>
+        
+        <div id="staffList" class="hidden-staff-list">
+            {% for s in staff_list %}
+            <div data-staff="{{ s.staff_id }}" data-name="{{ s.name }}" data-time="0h 00m" data-job-type="Management"></div>
+            {% endfor %}
+        </div>
+        
+    </div>
+</div>
+
+<div id="scheduleModal" class="ws-modal" aria-hidden="true">
+    <div class="ws-modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalTitle">Create a schedule</h4>
+                <button type="button" class="close-modal" id="closeModalBtn" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <form id="scheduleForm" class="modal-form">
+                {% csrf_token %}
+                <input type="hidden" id="modalScheduleId" name="schedule_id">
+                <input type="hidden" id="modalAction" name="action" value="create">
+
+                <div class="form-group">
+                    <label for="modalTitleInput">Title</label>
+                    <input type="text" id="modalTitleInput" name="title" class="form-input" required>
+                </div>
+                <div class="form-group">
+    <label for="modalDescription">Description/Notes</label>
+    <textarea id="modalDescription" name="description" class="form-input"></textarea>
+</div>
+                <div class="form-row">
+                    <div class="form-group flex-half">
+                        <label for="modalStaffSelect">Staff Member</label>
+                        <select id="modalStaffSelect" name="staff" class="form-select" required>
+                            {% for s in staff_list %}
+                            <option value="{{ s.staff_id }}">{{ s.name }} ({{ s.staff_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group flex-half">
+                        <label for="modalEventType">Type</label>
+                        <select id="modalEventType" name="event_type" class="form-select" required>
+                            <option value="Office">Office</option>
+                            <option value="Client">Client Site</option>
+                            <option value="Wfh">Work From Home</option>
+                            <option value="Leave">Leave / Away</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group flex-third">
+                        <label for="modalDate">Date</label>
+                        <input type="date" id="modalDate" name="date" class="form-input" required>
+                    </div>
+                    <div class="form-group flex-third">
+                        <label for="modalStartTime">Start date</label>
+                        <input type="date" id="modalStartTime" name="start" class="form-input" value="09:00" required>
+                    </div>
+                    <div class="form-group flex-third">
+                        <label for="modalEndTime">End date</label>
+                        <input type="date" id="modalEndTime" name="end" class="form-input" value="17:00" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-delete" id="deleteScheduleBtn" style="display:none;">Delete</button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveScheduleBtn">Save Schedule</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    window.INIT_EVENTS = JSON.parse(`{{ events_json|escapejs }}`);
+    window.API = JSON.parse(`{{ api_urls|escapejs }}`);
+    window.CSRF_TOKEN = "{{ csrf_token }}";
+</script>
+
+<script src="{% static 'js/admin/WorkSchedule.js' %}"></script>
+
+{% endblock %}

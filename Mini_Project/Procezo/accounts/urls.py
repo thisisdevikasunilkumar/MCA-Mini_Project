@@ -35,7 +35,22 @@ urlpatterns = [
     path('adminEmotionManagement/', views.admin_emotion_management, name='admin_emotion_management'),
 
 
-
+path('admin/work_schedules/', views.admin_work_schedule_list, name='admin_work_schedule_list'),
+    
+    # --- API ENDPOINTS ---
+    
+    # GET: Get all events (for calendar refresh)
+    path('admin/work_schedules/api/events/', views.work_schedules_json, name='work_schedules_json'),
+    
+    # POST: Create a new schedule
+    path('admin/work_schedules/api/create/', views.work_schedule_create, name='work_schedule_create'),
+    
+    # POST: Update an existing schedule (pk is the schedule_id)
+    path('admin/work_schedules/api/update/<int:pk>/', views.work_schedule_update, name='work_schedule_update'),
+    
+    # POST: Delete a schedule (pk is the schedule_id)
+    path('admin/work_schedules/api/delete/<int:pk>/', views.work_schedule_delete, name='work_schedule_delete'),
+    
     # ..............................................................
     # -------------------- Staff Dashboard URLs --------------------
     # ..............................................................

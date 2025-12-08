@@ -21,9 +21,13 @@ from django.core.files.storage import default_storage
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
-from .models import Staff, Register, Attendance, GoogleMeet
+from .models import Staff, Register, Attendance, GoogleMeet, WorkSchedule
 from .forms import StaffRegisterForm
 from .utils_face import pil_from_base64, count_faces, get_embedding_from_pil, save_base64_to_contentfile, cosine_similarity_vec, compare_two_images
+
+from datetime import datetime, timedelta, time as dtime
+from django.utils.dateparse import parse_date, parse_time
+from django.middleware.csrf import get_token
 
 # ---------------- Timezone helpers ----------------
 INDIA_TZ = pytz.timezone("Asia/Kolkata")
@@ -358,24 +362,24 @@ def api_login_with_password(request):
 
 
 # ---------------- Overtime calculation ----------------
-def calculate_overtime(required_checkout_time, actual_checkout_time):
-    """
-    required_checkout_time: python datetime.time or None
-    actual_checkout_time: python datetime.time
-    Returns decimal hours rounded to 2 decimals.
-    """
-    if not required_checkout_time:
-        return Decimal('0.00')
+# def calculate_overtime(required_checkout_time, actual_checkout_time):
+#     """
+#     required_checkout_time: python datetime.time or None
+#     actual_checkout_time: python datetime.time
+#     Returns decimal hours rounded to 2 decimals.
+#     """
+#     if not required_checkout_time:
+#         return Decimal('0.00')
 
-    # convert to datetimes on the same arbitrary date
-    dt_required = datetime.combine(datetime.today(), required_checkout_time)
-    dt_actual = datetime.combine(datetime.today(), actual_checkout_time)
+#     # convert to datetimes on the same arbitrary date
+#     dt_required = datetime.combine(datetime.today(), required_checkout_time)
+#     dt_actual = datetime.combine(datetime.today(), actual_checkout_time)
 
-    if dt_actual > dt_required:
-        overtime_td = dt_actual - dt_required
-        overtime_hours = Decimal(overtime_td.total_seconds() / 3600).quantize(Decimal('0.01'))
-        return overtime_hours
-    return Decimal('0.00')
+#     if dt_actual > dt_required:
+#         overtime_td = dt_actual - dt_required
+#         overtime_hours = Decimal(overtime_td.total_seconds() / 3600).quantize(Decimal('0.01'))
+#         return overtime_hours
+#     return Decimal('0.00')
 
 @csrf_exempt
 def api_face_logout(request):
@@ -408,22 +412,31 @@ def api_face_logout(request):
             check_out__isnull=True
         ).order_by('-check_in')
         active_att = active_qs.first()
+
         if not active_att:
             return JsonResponse({"success": False, "error": "No active Check-In record found for today. Please Check In first."})
 
-        # Calculate overtime using staff.required check_out (if set)
-        overtime_amount = Decimal('0.00')
-        if staff.check_out:
-            overtime_amount = calculate_overtime(staff.check_out, current_time)
+        # -----------------------------
+        # ✔ FIXED OVERTIME CALCULATION LOGIC
+        # -----------------------------
+        overtime_amount = None  # store None by default
 
-        # 1) Create NEW 'Inactive' row (per your requirement)
+        if staff.check_out:  # Staff shift end time is defined
+            checkout_dt = datetime.combine(today, current_time)
+            required_dt = datetime.combine(today, staff.check_out)
+
+            if checkout_dt > required_dt:
+                diff_seconds = (checkout_dt - required_dt).total_seconds()
+                overtime_amount = round(Decimal(diff_seconds) / Decimal(3600), 2)  # hours (decimal)
+
+        # 1) Create NEW 'Inactive' row
         new_att = Attendance.objects.create(
             staff=staff,
             date=today,
             check_in=active_att.check_in,
             check_out=current_time,
             status='Inactive',
-            overtime_hours=overtime_amount
+            overtime_hours=overtime_amount  # store None when no overtime
         )
 
         # 2) ALSO update the Active row's check_out so both rows show check_out (user wanted that)
@@ -870,6 +883,359 @@ def save_attendanceTime_to_staff(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method. Only POST is allowed"})
 
+def has_conflict(staff, date_obj, start_t, end_t, exclude_id=None):
+    # This logic is copied from your previous code and is assumed correct for your models
+    qs = WorkSchedule.objects.filter(staff=staff, date=date_obj)
+    if exclude_id:
+        qs = qs.exclude(schedule_id=exclude_id)
+    for s in qs:
+        if not s.start_time or not s.end_time or not start_t or not end_t:
+            continue
+        # convert to minutes
+        s_start = s.start_time.hour*60 + s.start_time.minute
+        s_end = s.end_time.hour*60 + s.end_time.minute
+        new_start = start_t.hour*60 + start_t.minute
+        new_end = end_t.hour*60 + end_t.minute
+        if (new_start < s_end and new_end > s_start):
+            return True
+    return False
+
+# --- PAGE RENDERING VIEW ---
+def admin_work_schedule_page(request):
+    staff_list = Staff.objects.all().order_by('name')
+    schedules = WorkSchedule.objects.select_related('staff').all()
+    events = []
+    for s in schedules:
+        if not s.date:
+            continue
+        events.append({
+            'id': s.schedule_id,
+            'title': s.title,
+            'staff_id': s.staff.staff_id if hasattr(s.staff,'staff_id') else s.staff.pk,
+            'staff_name': getattr(s.staff,'name',str(s.staff)),
+            'date': s.date.strftime('%Y-%m-%d'),
+            'start': s.start_time.strftime('%H:%M') if s.start_time else '',
+            'end': s.end_time.strftime('%H:%M') if s.end_time else '',
+            'event_type': s.event_type,
+            'repeat': getattr(s, 'repeat', 'none'),
+            'description': s.description or '',
+        })
+    context = {
+        'staff_list': staff_list,
+        'events_json': json.dumps(events),
+        'api_urls': {
+            'events': '/accounts/admin/work_schedules/api/events/',
+            'create': '/accounts/admin/work_schedules/api/create/',
+            'update': '/accounts/admin/work_schedules/api/update/{id}/',
+            'delete': '/accounts/admin/work_schedules/api/delete/{id}/',
+        },
+        'csrf_token': get_token(request),
+    }
+    return render(request, 'admin/Admin Work Schedule.html', context)
+
+# --- API VIEWS ---
+
+# API: Get all schedules (Used for calendar refresh)
+def work_schedules_json(request):
+    qs = WorkSchedule.objects.select_related('staff').all()
+    events = []
+    for s in qs:
+        # ... (same logic as in admin_work_schedule_page for formatting) ...
+        if not s.date: continue
+        events.append({
+            'id': s.schedule_id,
+            'title': s.title,
+            'staff_id': s.staff.staff_id if hasattr(s.staff,'staff_id') else s.staff.pk,
+            'staff_name': getattr(s.staff,'name',str(s.staff)),
+            'date': s.date.strftime('%Y-%m-%d'),
+            'start': s.start_time.strftime('%H:%M') if s.start_time else '',
+            'end': s.end_time.strftime('%H:%M') if s.end_time else '',
+            'event_type': s.event_type,
+            'description': s.description or '',
+        })
+    return JsonResponse({'events': events})
+
+
+# API: Create schedule (The primary fix target)
+@require_POST
+def work_schedule_create(request):
+    try:
+        data = json.loads(request.body.decode())
+    except json.JSONDecodeError:
+        # CRITICAL FIX: Always return JSON on error
+        return JsonResponse({'success': False, 'error': 'Invalid request data. Expected JSON.'}, status=400)
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Could not read request body.'}, status=400)
+
+    title = data.get('title')
+    staff_id = data.get('staff')
+    date_s = data.get('date')
+    start_s = data.get('start')
+    end_s = data.get('end')
+    event_type = data.get('event_type','Office')
+    description = data.get('description', '')
+    repeat = data.get('repeat','none')
+    repeat_until = data.get('repeat_until')
+
+    if not (title and staff_id and date_s):
+        return JsonResponse({'success': False, 'error': 'Missing required fields (Title, Staff, Date).'}, status=400)
+
+    try:
+        staff = Staff.objects.get(staff_id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Invalid staff member selected.'}, status=400)
+
+    try:
+        date_obj = parse_date(date_s)
+        # Assuming modalStartTime and modalEndTime are correctly set to type="time"
+        start_t = parse_time(start_s) if start_s else None
+        end_t = parse_time(end_s) if end_s else None
+        repeat_until_dt = parse_date(repeat_until) if repeat_until else None
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Invalid Date or Time format. Ensure time is HH:MM.'}, status=400)
+
+    if start_t and end_t and has_conflict(staff, date_obj, start_t, end_t):
+        return JsonResponse({'success': False, 'error': 'Conflict detected: Staff is already scheduled at this time.'}, status=400)
+
+    created = []
+    try:
+        s = WorkSchedule.objects.create(
+            title=title,
+            staff=staff,
+            date=date_obj,
+            start_time=start_t,
+            end_time=end_t,
+            event_type=event_type,
+            description=description,
+            repeat=repeat,
+            repeat_until=repeat_until_dt
+        )
+        
+        # Format the newly created event
+        created.append({
+            'id': s.schedule_id,
+            'title': s.title,
+            'staff_id': staff.staff_id,
+            'staff_name': staff.name,
+            'date': s.date.strftime('%Y-%m-%d'),
+            'start': s.start_time.strftime('%H:%M') if s.start_time else '',
+            'end': s.end_time.strftime('%H:%M') if s.end_time else '',
+            'event_type': s.event_type,
+            'description': s.description or '',
+        })
+        
+        # Repeating schedule logic (copied from your previous code)
+        if s.repeat != 'none' and s.repeat_until:
+            cur = s.date
+            while True:
+                # ... (timedelta logic for daily, weekly, monthly) ...
+                if s.repeat == 'daily': cur += timedelta(days=1)
+                elif s.repeat == 'weekly': cur += timedelta(weeks=1)
+                elif s.repeat == 'monthly': cur += timedelta(days=30) 
+                
+                if cur > s.repeat_until: break
+                
+                ns = WorkSchedule.objects.create(
+                    title=s.title, staff=staff, date=cur, start_time=s.start_time,
+                    end_time=s.end_time, event_type=s.event_type, description=s.description, status='Pending'
+                )
+                created.append({
+                    'id': ns.schedule_id, 'title': ns.title, 'staff_id': staff.staff_id, 
+                    'staff_name': staff.name, 'date': ns.date.strftime('%Y-%m-%d'), 
+                    'start': ns.start_time.strftime('%H:%M') if ns.start_time else '',
+                    'end': ns.end_time.strftime('%H:%M') if ns.end_time else '',
+                    'event_type': ns.event_type, 'description': ns.description or '',
+                })
+
+        return JsonResponse({'success': True, 'created': created})
+
+    except Exception as db_e:
+        print(f"Database Save Error: {db_e}")
+        return JsonResponse({'success': False, 'error': f'A server error occurred while saving: {db_e}'}, status=500)
+
+
+# API: Update schedule
+@require_POST
+def work_schedule_update(request, pk):
+    try:
+        data = json.loads(request.body.decode())
+    except:
+        return JsonResponse({'success': False, 'error': 'Invalid request data. Expected JSON.'}, status=400)
+        
+    try:
+        s = get_object_or_404(WorkSchedule, schedule_id=pk)
+    except:
+        return JsonResponse({'success': False, 'error': 'Schedule not found.'}, status=404)
+        
+    try:
+        # Apply updates
+        if 'date' in data: s.date = parse_date(data.get('date'))
+        if 'start' in data: s.start_time = parse_time(data.get('start')) if data.get('start') else None
+        if 'end' in data: s.end_time = parse_time(data.get('end')) if data.get('end') else None
+        if 'title' in data: s.title = data.get('title')
+        if 'event_type' in data: s.event_type = data.get('event_type')
+        if 'description' in data: s.description = data.get('description')
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Invalid Date or Time format.'}, status=400)
+        
+    if s.start_time and s.end_time and has_conflict(s.staff, s.date, s.start_time, s.end_time, exclude_id=s.schedule_id):
+        return JsonResponse({'success': False, 'error': 'Conflict detected'}, status=400)
+    
+    try:
+        s.save()
+        return JsonResponse({'success': True})
+    except Exception as db_e:
+        return JsonResponse({'success': False, 'error': f'Failed to save update: {db_e}'}, status=500)
+
+
+# API: Delete schedule
+@require_POST
+def work_schedule_delete(request, pk):
+    try:
+        s = get_object_or_404(WorkSchedule, schedule_id=pk)
+        s.delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Failed to delete schedule: {e}'}, status=500)
+        
+# --- Placeholder/Helper Views ---
+def admin_work_schedule_list(request): return admin_work_schedule_page(request)
+  
+def staff_work_schedule_list(request):
+    """
+    Renders the schedule list page for a logged-in staff member.
+    """
+    # Assuming staff_id is stored in the session upon login
+    staff_id = request.session.get("staff_id") 
+    
+    # Use the appropriate field (e.g., staff_id or pk) to look up the Staff object
+    # If your Staff model uses 'staff_id' as the unique identifier:
+    try:
+        staff = get_object_or_404(Staff, staff_id=staff_id)
+    except Exception as e:
+        # Handle case where staff_id is missing or invalid in session
+        # You might redirect them to login or show an error
+        print(f"Error fetching staff: {e}") 
+        # For now, let's assume it works or raises the 404
+        return render(request, 'staff/Work Schedule List.html', {'schedules': []})
+
+    # Filter schedules only for the current staff member
+    schedules = WorkSchedule.objects.filter(staff=staff).order_by('date')
+    
+    return render(request, 'staff/Work Schedule List.html', {'schedules': schedules})
+
+
+@require_POST
+def staff_mark_complete(request, schedule_id):
+    """
+    Marks a specific WorkSchedule item as complete for staff view.
+    It should typically be restricted to POST requests for state changes.
+    """
+    try:
+        # 1. Retrieve the schedule item
+        schedule = get_object_or_404(WorkSchedule, schedule_id=schedule_id)
+
+        # OPTIONAL: Add a check to ensure the schedule belongs to the logged-in user
+        # staff_id = request.session.get("staff_id")
+        # if str(schedule.staff.staff_id) != staff_id:
+        #     messages.error(request, "Permission denied.")
+        #     return redirect('staff_work_schedule_list') 
+        
+        # 2. Update the status field (assuming your model has a 'status' field)
+        schedule.status = 'Complete'
+        schedule.save()
+        
+        # 3. Provide feedback and redirect
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # Handle AJAX request
+            return JsonResponse({'success': True, 'message': 'Schedule marked as complete.'})
+        else:
+            # Handle standard form submission/redirect
+            messages.success(request, f"Schedule '{schedule.title}' marked as complete.")
+            return redirect('staff_work_schedule_list') # Redirect back to the list view
+
+    except WorkSchedule.DoesNotExist:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Schedule not found.'}, status=404)
+        else:
+            messages.error(request, "Schedule item not found.")
+            return redirect('staff_work_schedule_list')
+    
+    except Exception as e:
+        # Log the error (optional) and return a friendly message
+        print(f"Error marking schedule complete: {e}")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'An internal error occurred.'}, status=500)
+        else:
+            messages.error(request, "An unexpected error occurred.")
+            return redirect('staff_work_schedule_list')
+        
+
+# Note: If your front-end uses GET requests for this action, remove the @require_POST decorator.
+# However, POST is strongly recommended for operations that change data (like marking complete).
+
+@require_POST
+def staff_reschedule(request, schedule_id):
+    """
+    Handles a staff request to reschedule an existing WorkSchedule item.
+    Expects AJAX POST request with new 'date', 'start', and/or 'end' times.
+    """
+    try:
+        # 1. Attempt to retrieve schedule and parse data
+        schedule = get_object_or_404(WorkSchedule, schedule_id=schedule_id)
+        
+        # Check if the request is JSON (common for modals/AJAX updates)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body.decode())
+        else:
+            # Fallback for form data (less common for AJAX PUT/PATCH logic)
+            data = request.POST
+        
+        # Get and parse new data
+        new_date_s = data.get('date')
+        new_start_s = data.get('start')
+        new_end_s = data.get('end')
+
+        # 2. Update schedule object fields if new data is provided
+        updated = False
+        
+        if new_date_s:
+            schedule.date = parse_date(new_date_s)
+            updated = True
+            
+        if new_start_s:
+            schedule.start_time = parse_time(new_start_s)
+            updated = True
+            
+        if new_end_s:
+            schedule.end_time = parse_time(new_end_s)
+            updated = True
+            
+        # 3. Validation and Conflict Check
+        if not updated:
+            return JsonResponse({'success': False, 'error': 'No reschedule data provided.'}, status=400)
+
+        # Assuming has_conflict is available
+        if has_conflict(schedule.staff, schedule.date, schedule.start_time, schedule.end_time, exclude_id=schedule.schedule_id):
+            return JsonResponse({'success': False, 'error': 'Reschedule failed: Conflict detected with another shift.'}, status=400)
+            
+        # 4. Save and return success
+        schedule.save()
+        
+        # Return success response for AJAX
+        return JsonResponse({'success': True, 'message': 'Schedule successfully updated.'})
+
+    except WorkSchedule.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Schedule item not found.'}, status=404)
+        
+    except (ValueError, TypeError):
+        # Catches errors from parse_date/parse_time if the format is bad
+        return JsonResponse({'success': False, 'error': 'Invalid date or time format provided.'}, status=400)
+        
+    except Exception as e:
+        print(f"Reschedule error: {e}")
+        return JsonResponse({'success': False, 'error': f'An internal server error occurred: {e}'}, status=500)
+    
 def admin_emotion_management(request):
     return render(request, "admin/Emotion Management.html")
 
@@ -905,6 +1271,14 @@ def staff_dashboard(request):
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).order_by('dob__month', 'dob__day')
 
+    # ---------------------------------------------
+    # UPCOMING BIRTHDAYS (next 7 days)
+    # ---------------------------------------------
+    upcoming_birthdays = Register.objects.filter(
+        Q(dob__month=today.month, dob__day__gte=today.day) |
+        Q(dob__month=next_week.month, dob__day__lte=next_week.day)
+    ).order_by('dob__month', 'dob__day')[:5]
+
     # ----------- Filter GoogleMeet by staff.job_type -----------
     todays_meets = GoogleMeet.objects.filter(
         meet_time__date=today,
@@ -919,6 +1293,7 @@ def staff_dashboard(request):
             'attendance': attendance,
             'birthday_this_week_count': birthday_this_week_count,
             'birthday_this_week_list': birthday_this_week_list,
+            'upcoming_birthdays': upcoming_birthdays,
             'todays_meets': todays_meets
         }
     )

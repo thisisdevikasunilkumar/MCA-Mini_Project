@@ -1,6 +1,7 @@
 # accounts/models.py
 
 import os
+from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password
@@ -14,9 +15,9 @@ ROLE_CHOICES = (
 )
 
 ATTENDANCE_STATUS = (
-    ('Present', 'Present'),
-    ('Absent', 'Absent'),
-    ('Leave', 'Leave'),
+    ('Active', 'Active'),
+    ('Inactive', 'Inactive'),
+    ('Late', 'Late'),
 )
 
 # -----------------------------------
@@ -43,6 +44,9 @@ class Staff(models.Model):
     system_id = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    check_in = models.TimeField(null=True, blank=True)
+    check_out = models.TimeField(null=True, blank=True)
+    
     # Auto-generate S001, S002...
     def save(self, *args, **kwargs):
         if not self.staff_id:
@@ -114,10 +118,79 @@ class Attendance(models.Model):
     check_in = models.TimeField(null=True, blank=True)
     check_out = models.TimeField(null=True, blank=True)
     overtime_hours = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    status = models.CharField(max_length=10, choices=ATTENDANCE_STATUS, default='Present')
+    status = models.CharField(max_length=10, choices=ATTENDANCE_STATUS, default='Inactive')
 
     class Meta:
-        unique_together = ('staff', 'date')
+        pass
+
+
+# ==============================================
+#   4) GoogleMeet Model
+# ==============================================
+class GoogleMeet(models.Model):
+    meet_id = models.AutoField(primary_key=True)
+    job_type = models.CharField(max_length=100)
+    meet_time = models.DateTimeField()
+    meet_title = models.CharField(max_length=255)
+    meet_description = models.TextField(blank=True, null=True)
+    meet_link = models.CharField(max_length=500, blank=True, null=True)
 
     def __str__(self):
-        return f"Attendance - {self.staff.name} - {self.date}"
+        return f"{self.meet_title} - {self.job_type}"
+
+
+# ==============================================
+#   4) WorkSchedule Model
+# ==============================================
+WORK_STATUS_CHOICES = [
+    ('Pending','Pending'),
+    ('Completed','Completed'),
+    ('Rescheduled','Rescheduled'),
+    ('Incomplete','Incomplete'),
+]
+
+EVENT_TYPE_CHOICES = [
+    ('Office','Office'),
+    ('Client','Client'),
+    ('Leave','Leave'),
+    ('WFH','WFH'),
+    ('Other','Other'),
+]
+
+REPEAT_CHOICES = [
+    ('none','None'),
+    ('daily','Daily'),
+    ('weekly','Weekly'),
+    ('monthly','Monthly'),
+]
+
+class WorkSchedule(models.Model):
+    schedule_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey('Staff', on_delete=models.CASCADE, related_name='work_schedules')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+
+    date = models.DateField(null=True, blank=True)             # the scheduled date
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default='Office')
+    repeat = models.CharField(max_length=16, choices=REPEAT_CHOICES, default='none')
+    repeat_until = models.DateField(null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=WORK_STATUS_CHOICES, default='Pending')
+    admin_notes = models.TextField(blank=True, null=True)
+    staff_response = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def duration_minutes(self):
+        if self.start_time and self.end_time:
+            delta = (timezone.datetime.combine(timezone.now().date(), self.end_time)
+                     - timezone.datetime.combine(timezone.now().date(), self.start_time))
+            return max(0, int(delta.total_seconds() // 60))
+        return 0
+
+    def _str_(self):
+        return f"{self.title} ({self.staff}) - {self.date}"

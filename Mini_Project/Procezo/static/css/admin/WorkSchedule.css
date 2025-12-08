@@ -1,0 +1,389 @@
+/* ================================================= */
+/* Base Styles & Variables */
+/* ================================================= */
+
+:root {
+    --primary-color: #00875a; /* Green from the reference template */
+    --primary-color-dark: #006b4b;
+    --secondary-color: #6a6a6a; /* Darker text */
+    --bg-color-light: #f4f6f8; /* Very light page background */
+    --card-bg: #ffffff;
+    --border-color: #e3e6e8;
+    --text-color-dark: #344754;
+    --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    --font-family: 'Inter', sans-serif;
+
+    /* Schedule Type Colors (Example, match your event types) */
+    --color-office: #e6ffe6; 
+    --color-client: #fff0e6;
+    --color-leave: #ffe6e6;
+    --color-wfh: #e6f7ff;
+    --color-other: #f4e6ff;
+}
+
+/* --- Container and General Reset --- */
+.ws-container * {
+    box-sizing: border-box;
+    font-family: var(--font-family);
+    color: var(--text-color-dark);
+}
+
+.ws-container {
+    padding: 20px;
+    background-color: var(--bg-color-light);
+    min-height: calc(100vh - 60px);
+}
+
+/* ================================================= */
+/* Header and Navigation Bar */
+/* ================================================= */
+
+.ws-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.ws-title {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.ws-date-navigation {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 8px 15px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-subtle);
+}
+
+.calendar-range-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.nav-buttons-group {
+    display: flex;
+    gap: 5px;
+    border-left: 1px solid var(--border-color);
+    padding-left: 10px;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    color: var(--secondary-color);
+}
+.icon-btn:hover {
+    color: var(--primary-color);
+}
+
+/* --- Toolbar Controls (Add Schedule, View Toggle) --- */
+
+.ws-toolbar-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.toolbar-left, .toolbar-center {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: white;
+    font-size: 14px;
+}
+
+.btn {
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-dark);
+}
+
+.view-toggle-group {
+    display: inline-flex;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.btn-view {
+    padding: 8px 15px;
+    border: none;
+    background-color: var(--card-bg);
+    color: var(--secondary-color);
+}
+
+.btn-view.active {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+.btn-view:not(.active):hover {
+    background-color: var(--bg-color-light);
+}
+
+/* ================================================= */
+/* Team Tabs */
+/* ================================================= */
+
+.team-tabs {
+    display: flex;
+    gap: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 15px;
+    overflow-x: auto;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 5px 0;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--secondary-color);
+    transition: color 0.2s;
+    position: relative;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    color: var(--primary-color);
+}
+
+.tab-button.active {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+}
+
+
+/* ================================================= */
+/* Calendar Grid Container (The main view) */
+/* ================================================= */
+
+.calendar-grid-container {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-subtle);
+    overflow: auto; /* For horizontal scrolling if the content is too wide */
+}
+
+/* --- Grid Definition (Injected by JS) --- */
+
+/* This class defines the main structure for the Week View */
+.schedule-grid {
+    display: grid;
+    /* Grid: 1 column for staff + 7 columns for days */
+    grid-template-columns: 200px repeat(7, 1fr); 
+    min-width: 1000px; /* Ensure content doesn't shrink too much */
+}
+
+/* --- Headers (Top Row) --- */
+
+.grid-header-cell {
+    padding: 10px;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-color-light);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Empty cell for the staff header column */
+.grid-header-cell:first-child {
+    background-color: var(--card-bg);
+    border-right: 2px solid var(--border-color); /* Stronger separator */
+}
+
+.day-header-weekend {
+    color: #e57373; /* Light red for weekends */
+    background-color: #fce4ec; /* Light pink background */
+}
+
+/* --- Staff Row --- */
+
+.grid-staff-cell {
+    padding: 10px;
+    border-right: 2px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.staff-info-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.staff-name-tag {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.staff-time-info {
+    font-size: 11px;
+    color: var(--secondary-color);
+    font-weight: 400;
+}
+
+/* --- Event Cells (Body) --- */
+
+.grid-event-cell {
+    padding: 5px;
+    min-height: 80px; /* Standard row height */
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    transition: background-color 0.1s;
+    cursor: pointer;
+}
+
+.grid-event-cell:hover {
+    background-color: #f9f9f9;
+}
+
+.event-block {
+    font-size: 12px;
+    padding: 4px 8px;
+    margin-bottom: 3px;
+    border-radius: 4px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 4px solid; /* For color coding */
+}
+
+/* Event Color Mapping */
+.event-office { background-color: var(--color-office); border-left-color: var(--accent-color); color: #004d40;}
+.event-client { background-color: var(--color-client); border-left-color: #ff9800; color: #e65100;}
+.event-leave { background-color: var(--color-leave); border-left-color: #f44336; color: #b71c1c;}
+.event-wfh { background-color: var(--color-wfh); border-left-color: #03a9f4; color: #01579b;}
+.event-other { background-color: var(--color-other); border-left-color: #9c27b0; color: #4a148c;}
+
+
+
+/* Basic Modal Styles */
+.ws-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none; /* Initially hidden */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.ws-modal.show {
+    display: flex; /* Show when 'show' class is added by JS */
+}
+
+.ws-modal-dialog {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 450px; /* Small size for basic form */
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Form Layout */
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.flex-half { flex: 1; }
+.flex-third { flex: 1; }
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+.modal-footer > div {
+    display: flex;
+    gap: 10px;
+}
