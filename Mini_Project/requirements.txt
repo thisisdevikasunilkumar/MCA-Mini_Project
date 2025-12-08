@@ -6,3 +6,6 @@ numpy
 pillow
 torch
 facenet-pytorch
+
+pytz
+djangorestframework
