@@ -92,7 +92,34 @@ https://www.figma.com/design/nObz93WhgZg4kcEYnxP071/Procezo?node-id=0-1&t=mtfQqJ
      
    ```bash
      http://127.0.0.1:8000/
-   
+
+---
+## 🔐 Initial Login & User Management
+
+Admin Login (First Time)
+To access the system for the first time, **you must log in as Admin**.
+
+Admin Credentials:
+Email: `admin@gmail.com`
+Password: `admin@123`
+
+> The admin account is pre-configured in the system for initial access.
+
+**Admin Workflow**
+
+- Open the login page.
+- Log in using the Admin email and password.
+- After successful login, you will be redirected to the Admin Dashboard.
+- From the dashboard, go to Staff Management.
+- Add new staff members by entering their details (name, email, role, etc.).
+- Staff login credentials will be created through the admin panel.
+
+**Staff Login**
+
+- Staff members can log in using the credentials provided by the admin.
+- Attendance is marked automatically using facial recognition during login.
+- Staff can view their attendance, emotion reports, and performance summaries.
+
 ---   
 
 ## 👥 Team Members
