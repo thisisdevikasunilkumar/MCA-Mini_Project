@@ -97,12 +97,11 @@ https://www.figma.com/design/nObz93WhgZg4kcEYnxP071/Procezo?node-id=0-1&t=mtfQqJ
 ## 🔐 Initial Login & User Management
 
 **Admin Login (First Time)**
-To access the system for the first time, **you must log in as Admin**.
+> To access the system for the first time, **you must log in as Admin**.
 
 Admin Credentials:
-Email: `admin@gmail.com`
-
-Password: `admin@123`
+- Email: `admin@gmail.com`
+- Password: `admin@123`
 
 > The admin account is pre-configured in the system for initial access.
 
