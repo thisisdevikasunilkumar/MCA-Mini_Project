@@ -1,4 +1,4 @@
-# MCA-Mini_Project- Procezo
+# MCA-Mini_Project - Procezo
 
 **Procezo** is an Employee Monitoring and Productivity Management System designed to automate attendance, track work activities, and evaluate employee engagement through real-time emotion detection and analytics.
 
