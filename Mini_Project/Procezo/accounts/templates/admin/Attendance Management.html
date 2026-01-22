@@ -111,9 +111,49 @@
       </div>
     </div>
 
-    <div class="card-header">
-      <h2>Individual Reports</h2>
-    </div>
+    <form method="get" id="filterForm" class="filter-bar">
+      <!-- Status -->
+      <div class="filter-group">
+        <label>Status</label>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All</option>
+          <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
+          <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
+          <option value="Late" {% if request.GET.status == "Late" %}selected{% endif %}>Late</option>
+        </select>
+      </div>
+      <!-- Staff ID -->
+      <div class="filter-group">
+        <label>Staff ID</label>
+        <input type="text" name="staff_id"
+              placeholder="S001"
+              value="{{ request.GET.staff_id }}"
+              onchange="this.form.submit()">
+      </div>
+      <!-- Staff Name -->
+      <div class="filter-group">
+        <label>Staff Name</label>
+        <input type="text" name="staff_name"
+              placeholder="Enter Staff Name"
+              value="{{ request.GET.staff_name }}"
+              onchange="this.form.submit()">
+      </div>
+      <!-- From Date -->
+      <div class="filter-group">
+        <label>From Date</label>
+        <input type="date" name="from_date"
+              value="{{ request.GET.from_date }}"
+              onchange="this.form.submit()">
+      </div>
+      <!-- To Date -->
+      <div class="filter-group">
+        <label>To Date</label>
+        <input type="date" name="to_date"
+              value="{{ request.GET.to_date }}"
+              onchange="this.form.submit()">
+      </div>
+    </form>
+
     <table class="data-table">
       <thead>
         <tr>
@@ -126,28 +166,24 @@
           <th>Status</th>
         </tr>
       </thead>
-
       <tbody>
         {% for a in attendance_list %}
         <tr>
           <td>{{ a.staff.staff_id }}</td>
           <td>{{ a.staff.name }}</td>
           <td>{{ a.date }}</td>
-
           <td>{{ a.check_in|default:"--:--" }}</td>
           <td>{{ a.check_out|default:"--:--" }}</td>
-
           <td>{{ a.overtime_hours|default:"00:00" }}</td>
-
           <td>
             {% if a.status == 'Active' %}
-                <span class="status-badge active">Active</span>
+              <span class="status-badge active">Active</span>
             {% elif a.status == 'Late' %}
-                <span class="status-badge late">Late</span>
+              <span class="status-badge late">Late</span>
             {% elif a.status == 'Inactive' %}
-                <span class="status-badge inactive">Inactive</span>
+              <span class="status-badge inactive">Inactive</span>
             {% else %}
-                <span class="status-badge pending">Pending</span>
+              <span class="status-badge pending">Pending</span>
             {% endif %}
           </td>
         </tr>

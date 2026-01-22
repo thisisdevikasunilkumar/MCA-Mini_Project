@@ -56,157 +56,112 @@
       </div>
     </div>
 
-    <div>
-      <div class="card-header">
-        <h2>Recent Emotion Reports</h2>
-      </div>
+<div>
+  <div class="card-header">
+    <h2>Recent Emotion Reports</h2>
+  </div>
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Emotion</th>
-            <th>Status</th>
-          </tr>
-        </thead>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Staff ID</th>
+      <th>Staff Name</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Emotion</th>
+      <th>Status</th>
+    </tr>
+  </thead>
 
-        <tbody>
-          <tr>
-            <td>12-03-2025</td>
-            <td>11:30 AM</td>
-            <td>😄 Very Happy</td>
-            <td><span class="status-badge positive">Positive</span></td>
-          </tr>
+  <tbody>
+    {% for emo in all_emotions %}
+    <tr>
+      <td>{{ staff.staff_id }}</td>
+      <td>{{ staff.name }}</td>
 
-          <tr>
-            <td>18-08-2025</td>
-            <td>11:15 AM</td>
-            <td>🙂 Happy</td>
-            <td><span class="status-badge positive">Positive</span></td>
-          </tr>
+      <td>{{ emo.timestamp|date:"d-m-Y" }}</td>
+      <td>{{ emo.timestamp|time:"h:i A" }}</td>
 
-          <tr>
-            <td>12-10-2025</td>
-            <td>11:00 AM</td>
-            <td>😐 Neutral</td>
-            <td><span class="status-badge neutral">Neutral</span></td>
-          </tr>
+      <td>
+        {% if emo.emotion_type == "Happy" %}
+          😄 Happy
+        {% elif emo.emotion_type == "Sad" %}
+          😢 Sad
+        {% elif emo.emotion_type == "Neutral" %}
+          😐 Neutral
+        {% elif emo.emotion_type == "Angry" %}
+          😡 Angry
+        {% elif emo.emotion_type == "Tired" %}
+          😪 Tired
+        {% elif emo.emotion_type == "Focused" %}
+          🎯 Focused
+        {% endif %}
+      </td>
 
-          <tr>
-            <td>14-10-2025</td>
-            <td>10:45 AM</td>
-            <td>😟 Stressed</td>
-            <td><span class="status-badge negative">Negative</span></td>
-          </tr>
+      <td>
+        {% if emo.emotion_type in "Happy Focused" %}
+          <span class="status-badge positive">Positive</span>
+        {% elif emo.emotion_type == "Neutral" %}
+          <span class="status-badge neutral">Neutral</span>
+        {% else %}
+          <span class="status-badge negative">Negative</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
-          <tr>
-            <td>01-11-2025</td>
-            <td>10:30 AM</td>
-            <td>😄 Very Happy</td>
-            <td><span class="status-badge positive">Positive</span></td>
-          </tr>
-        </tbody>
-      </table>
 
-    </div>
+</div>
 
     <div class="messages-section">
-
       <div class="messages-header">
-        <h3>📩 Messages from Admin</h3>
-        <span class="message-count" id="message-count">3 New</span>
+          <h3>📩 Messages from Admin</h3>
+          <span class="message-count" id="message-count">
+              {{ feedback_count }} New
+          </span>
       </div>
 
       <div class="messages-list" id="messages-list">
-
-        <!-- Message 1 -->
-        <div class="message-card urgent" data-message-id="1">
-
+        {% for f in feedback_list %}
+        <div class="message-card urgent" data-message-id="{{ f.feedback_id }}">
           <div class="message-header">
-            <div class="message-icon">😟</div>
-
             <div class="message-info">
-              <div class="message-title">Wellbeing Check-in Required</div>
-              <div class="message-time">2 hours ago</div>
+              <div class="message-time">{{ f.created_at|timesince }} ago</div>
             </div>
-
-            <div class="message-badge sad">Sad Alert</div>
           </div>
 
           <div class="message-body">
-            Your recent emotion tracking shows increased sadness levels.
-            Please schedule a 1-on-1 meeting with your manager for support and guidance.
+            {% if f.message %}
+              {{ f.message }}
+            {% elif f.current_problem %}
+              {{ f.current_problem }}
+            {% endif %}
           </div>
 
           <div class="message-actions">
-            <button class="reply-btn" onclick="toggleReply(1)">
-              <span>💬</span><span>Reply to Admin</span>
+            <button class="reply-btn" onclick="toggleReply({{ f.feedback_id }})">
+              💬 Reply to Admin
             </button>
           </div>
 
-          <div class="reply-section" id="reply-section-1">
-            <textarea class="reply-textarea" id="reply-textarea-1"
-              placeholder="Type your response to admin here..."></textarea>
+          <div class="reply-section" id="reply-section-{{ f.feedback_id }}">
+            <textarea class="reply-textarea" id="reply-textarea-{{ f.feedback_id }}" placeholder="Type your response to admin here...">{{ f.current_problem }}</textarea>
 
             <div class="reply-actions">
-              <button class="send-reply-btn" onclick="sendReply(1)">
-                <span>✉️</span><span>Send Reply</span>
+              <button class="send-reply-btn" onclick="sendReply({{f.feedback_id }})">
+                ✉️ Send Reply
               </button>
-
-              <button class="cancel-reply-btn" onclick="cancelReply(1)">Cancel</button>
+              <button class="cancel-reply-btn" onclick="cancelReply({{f.feedback_id }})">Cancel</button>
             </div>
 
-            <div class="success-message" id="success-message-1">
-              <span>✅</span><span>Reply sent successfully to admin!</span>
+            <div class="success-message" id="success-message-{{ f.feedback_id }}">
+              ✅ Reply sent successfully to admin!
             </div>
           </div>
         </div>
-
-        <!-- Message 2 -->
-        <div class="message-card urgent" data-message-id="2">
-
-          <div class="message-header">
-            <div class="message-icon">😠</div>
-
-            <div class="message-info">
-              <div class="message-title">Stress Management Resources</div>
-              <div class="message-time">1 day ago</div>
-            </div>
-
-            <div class="message-badge angry">Angry Alert</div>
-          </div>
-
-          <div class="message-body">
-            We've noticed elevated stress indicators. Please review the wellness
-            resources shared in your email and consider taking a mental health day if needed.
-          </div>
-
-          <div class="message-actions">
-            <button class="reply-btn" onclick="toggleReply(2)">
-              <span>💬</span><span>Reply to Admin</span>
-            </button>
-          </div>
-
-          <div class="reply-section" id="reply-section-2">
-            <textarea class="reply-textarea" id="reply-textarea-2"
-              placeholder="Type your response to admin here..."></textarea>
-
-            <div class="reply-actions">
-              <button class="send-reply-btn" onclick="sendReply(2)">
-                <span>✉️</span><span>Send Reply</span>
-              </button>
-
-              <button class="cancel-reply-btn" onclick="cancelReply(2)">Cancel</button>
-            </div>
-
-            <div class="success-message" id="success-message-2">
-              <span>✅</span><span>Reply sent successfully to admin!</span>
-            </div>
-          </div>
-
-        </div>
-
+        {% endfor %}
       </div>
     </div>
 
