@@ -73,19 +73,21 @@ https://www.figma.com/design/nObz93WhgZg4kcEYnxP071/Procezo?node-id=0-1&t=mtfQqJ
         'PORT': '3306',
      }
    }
+
+5. **Create Database Before Migration**
    ```bash
-   Create database before migration: CREATE DATABASE database_name;
+     CREATE DATABASE database_name;
    
-5. **Run Migrations**
+6. **Run Migrations**
    ```bash
      python manage.py makemigrations
      python manage.py migrate
 
-6. **Start the Server**
+7. **Start the Server**
    ```bash
     python manage.py runserver
 
-7. **Access the Application**
+8. **Access the Application**
    - Open your browser and visit:
      
    ```bash
