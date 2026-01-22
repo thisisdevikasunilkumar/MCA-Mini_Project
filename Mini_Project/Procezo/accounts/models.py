@@ -140,7 +140,7 @@ class GoogleMeet(models.Model):
 
 
 # ==============================================
-#   4) WorkSchedule Model
+#   5) WorkSchedule Model
 # ==============================================
 WORK_STATUS_CHOICES = [
     ('Pending','Pending'),
@@ -170,9 +170,8 @@ class WorkSchedule(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
 
-    date = models.DateField(null=True, blank=True)             # the scheduled date
-    start_time = models.TimeField(null=True, blank=True)
-    end_time = models.TimeField(null=True, blank=True)
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
 
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default='Office')
     repeat = models.CharField(max_length=16, choices=REPEAT_CHOICES, default='none')
@@ -187,10 +186,62 @@ class WorkSchedule(models.Model):
 
     def duration_minutes(self):
         if self.start_time and self.end_time:
-            delta = (timezone.datetime.combine(timezone.now().date(), self.end_time)
-                     - timezone.datetime.combine(timezone.now().date(), self.start_time))
+            delta = self.end_time - self.start_time
             return max(0, int(delta.total_seconds() // 60))
         return 0
 
-    def _str_(self):
-        return f"{self.title} ({self.staff}) - {self.date}"
+    def __str__(self):
+        return f"{self.title} ({self.staff}) - {self.start_time.date() if self.start_time else ''}"
+
+
+# ==============================================
+#   5) Emotion Model
+# ==============================================
+class Emotion(models.Model):
+    EMOTION_CHOICES = [
+        ('Happy', 'Happy'),
+        ('Sad', 'Sad'),
+        ('Neutral', 'Neutral'),
+        ('Angry', 'Angry'),
+        ('Tired', 'Tired'),
+        ('Focused', 'Focused'),
+    ]
+
+    emotion_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='emotions')
+    emotion_type = models.CharField(max_length=20, choices=EMOTION_CHOICES)
+    timestamp = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.staff} - {self.emotion_type} @ {self.timestamp}"
+    
+class Productivity(models.Model):
+    productvity_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='productivities')
+    score_percent = models.PositiveSmallIntegerField(help_text="0-100")
+    date = models.DateField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.staff} - {self.score_percent}% @ {self.date}"
+
+class Feedback(models.Model):
+    feedback_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="feedbacks")
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.staff.name} - {self.message[:20]}"
+
+
+class IssueReport(models.Model):
+    issue_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='issues')
+    current_problem = models.TextField()
+    root_cause = models.TextField(blank=True, null=True)
+    proposed_action = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    reviewed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Issue: {self.staff} @ {self.created_at}"

@@ -40,14 +40,38 @@ const modalDate = document.getElementById('modalDate');
 const modalStartTime = document.getElementById('modalStartTime');
 const modalEndTime = document.getElementById('modalEndTime');
 
+function normalizeJobType(raw) {
+    if (!raw) return '';
+    const t = raw.trim().toLowerCase();
+    if (t === 'hr' || t === 'human resources' || t === 'human resource') return 'HR';
+    if (t === 'finance' || t === 'finance dept' || t === 'accounts') return 'Finance';
+    if (t === 'sales' || t === 'sales dept') return 'Sales';
+    if (t === 'marketing' || t === 'marketing dept') return 'Marketing';
+    if (t === 'operations' || t === 'ops') return 'Operations';
+    if (t === 'it' || t === 'it support' || t === 'tech support') return 'IT Support';
+    return raw.trim();
+}
+
 let fullStaffList = Array.from(staffDataList).map(el => ({
     id: el.dataset.staff,
     name: el.dataset.name,
     total_time: el.dataset.time || '0h 00m',
-    job_type: el.dataset.jobType || 'Other' 
+    job_type: normalizeJobType(el.dataset.jobType || '')
 }));
 
-let currentStaffList = fullStaffList; 
+let currentStaffList = fullStaffList;
+
+// Map staff_id -> job_type so each event knows its job_type
+const staffJobTypeMap = {};
+fullStaffList.forEach(s => {
+    staffJobTypeMap[s.id] = s.job_type;
+});
+
+INITIAL_EVENTS.forEach(ev => {
+    const staffId = ev.staff || ev.staff_id;
+    ev.staff_id = staffId; // normalize
+    ev.job_type = normalizeJobType(staffJobTypeMap[staffId] || '');
+});
 
 
 // --- UTILITY FUNCTIONS ---
@@ -143,80 +167,82 @@ function openModalForEdit(eventId) {
 // --- API Communication Functions ---
 
 async function submitSchedule(e) {
-    e.preventDefault(); 
-    
+    e.preventDefault();
+
     const formData = new FormData(scheduleForm);
+    formData.delete('csrfmiddlewaretoken');
+
     const action = modalAction.value;
     const scheduleId = modalScheduleId.value;
-    
-    const data = Object.fromEntries(formData.entries());
-    delete data.csrfmiddlewaretoken; 
-    
-    let url = API.create;
 
+    const data = Object.fromEntries(formData.entries());
+
+    let url = API.create;
     if (action === 'update' && scheduleId) {
         url = API.update.replace('{id}', scheduleId);
-    } 
+    }
 
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRFToken": CSRF_TOKEN,
             },
             body: JSON.stringify(data),
         });
 
-        if (!response.ok) {
-             const errorData = await response.json();
-             throw new Error(errorData.error || `Server error: ${response.statusText}`);
+        // If server returned HTML instead of JSON
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            console.error("SERVER RETURNED HTML:", responseText);
+            throw new Error("Server returned HTML error page. Check backend view.");
         }
 
-        const result = await response.json();
-        
+        if (!response.ok) {
+            throw new Error(result.error || "Server error.");
+        }
+
         if (result.success) {
-            
-            // --- Crucial: Update the local data array (INITIAL_EVENTS) and re-render ---
-            if (action === 'create' && result.created) {
-                result.created.forEach(new_event => {
+            if (action === "create") {
+                result.created.forEach(ev => {
                     INITIAL_EVENTS.push({
-                        id: new_event.id,
-                        title: new_event.title,
-                        staff: new_event.staff_id, 
-                        date: new_event.date,
-                        start: new_event.start,
-                        end: new_event.end,
-                        event_type: new_event.event_type,
+                        id: ev.id,
+                        title: ev.title,
+                        staff: ev.staff_id,
+                        date: ev.date,
+                        start: ev.start,
+                        end: ev.end,
+                        event_type: ev.event_type,
                     });
                 });
-            } else if (action === 'update') {
-                const eventIndex = INITIAL_EVENTS.findIndex(e => String(e.id) === String(scheduleId));
-                if (eventIndex !== -1) {
-                    INITIAL_EVENTS[eventIndex] = { 
-                        ...INITIAL_EVENTS[eventIndex], 
-                        title: data.title,
-                        staff: data.staff, 
-                        date: data.date,
-                        start: data.start, 
-                        end: data.end,
-                        event_type: data.event_type,
+            }
+
+            if (action === "update") {
+                const i = INITIAL_EVENTS.findIndex(e => String(e.id) === String(scheduleId));
+                if (i !== -1) {
+                    INITIAL_EVENTS[i] = {
+                        ...INITIAL_EVENTS[i],
+                        ...data,
                     };
                 }
             }
-            
-            // Re-render the calendar to display the new or updated event
+
             renderCalendar();
             hideModal();
-        } else if (result.error) {
-            alert(`Failed to save schedule: ${result.error}`);
+        } else {
+            alert("Failed: " + (result.error || "Unknown error"));
         }
-
-    } catch (error) {
-        console.error('Failed to save schedule:', error);
-        alert(`Error: Could not save schedule. ${error.message}`);
+    } catch (err) {
+        alert("Error: Could not save schedule. " + err.message);
+        console.error(err);
     }
 }
+
 
 async function deleteSchedule() {
     const scheduleId = modalScheduleId.value;
@@ -262,13 +288,20 @@ function renderWeekView() {
     
     let html = '<div class="schedule-grid">';
 
+    // Apply job-type filter to staff rows
+    const staffToRender = currentStaffList.filter(staff => {
+        if (currentJobFilter === 'ALL') return true;
+        const jobType = (staff.job_type || '').trim();
+        return jobType === currentJobFilter;
+    });
+
     // 1. Day Headers (omitted for brevity)
 
     // 2. Generate Staff Rows and Event Cells
-    currentStaffList.forEach(staff => {
+    staffToRender.forEach(staff => {
         html += `<div class="grid-staff-cell" data-staff-id="${staff.id}">
                     <div class="staff-info-box">
-                        <div class="staff-name-tag">${staff.name}</div>
+                        <div class="staff-name-tag">${staff.name} ${staff.job_type ? '- ' + staff.job_type : ''}</div>
                         <div class="staff-time-info">${staff.total_time} / 0s</div>
                     </div>
                 </div>`;
@@ -284,7 +317,9 @@ function renderWeekView() {
             const dayKey = day.toISOString().split('T')[0];
             
             const eventsOnDay = INITIAL_EVENTS.filter(e => 
-                e.date === dayKey && String(e.staff || e.staff_id) === String(staff.id)
+                e.date === dayKey &&
+                String(e.staff || e.staff_id) === String(staff.id) &&
+                (currentJobFilter === 'ALL' || (e.job_type || '').trim() === currentJobFilter)
             );
             
             let eventsHtml = eventsOnDay.map(event => {
@@ -328,7 +363,10 @@ function renderMonthView() { /* ... similar logic to display event title ... */
         const isOutsideMonth = day.getMonth() !== currentMonth;
         const classes = isOutsideMonth ? 'outside-month' : '';
 
-        const eventsOnDay = INITIAL_EVENTS.filter(e => e.date === dayKey);
+        const eventsOnDay = INITIAL_EVENTS.filter(e => 
+            e.date === dayKey &&
+            (currentJobFilter === 'ALL' || (e.job_type || '').trim() === currentJobFilter)
+        );
         
         let eventsHtml = eventsOnDay.map(event => {
             const eventClass = `event-${(event.event_type || 'other').toLowerCase()}`;
@@ -423,8 +461,14 @@ function handleJobTabClick(e) {
     const button = e.target.closest('.tab-button');
     if (!button) return;
 
-    const newJob = button.dataset.job;
-    // ... filtering logic ...
+    const newJob = button.dataset.job || 'ALL';
+    currentJobFilter = newJob;
+
+    // Toggle active state
+    Array.from(teamTabsContainer.querySelectorAll('.tab-button')).forEach(btn => {
+        btn.classList.toggle('active', btn === button);
+    });
+
     renderCalendar();
 }
 
@@ -579,3 +623,144 @@ teamTabs.forEach(tab => {
         fetchStaffData(jobType); 
     });
 });
+
+
+
+// ---- WEEK DAY HEADERS ---- //
+const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+html += `<div class="grid-header-row">`;
+
+const { start } = getWeekRange(currentDate);
+for (let i = 0; i < 7; i++) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+
+    const label = `${dayNames[i]}<br>${day.getDate()}`;
+    html += `<div class="grid-header-cell">${label}</div>`;
+}
+html += `</div>`;
+
+
+// This is an example of what might be wrong, where 'scheduleId' is missing for a new entry
+var scheduleId = getScheduleIdFromForm(); // For a new schedule, this might return null or be undefined
+var url = '/accounts/admin/work_schedules/' + scheduleId; 
+
+// If scheduleId is undefined, the URL becomes: /accounts/admin/work_schedules/undefined
+fetch(url, {
+    method: 'POST',
+    // ... data ...
+});
+
+function saveSchedule() {
+    var scheduleData = getFormData(); // Function to collect Title, Date, etc.
+    var scheduleId = getScheduleIdFromForm(); // Try to get an ID
+
+    var method;
+    var url;
+
+    if (scheduleId && scheduleId !== 'undefined') {
+        // **EDITING** an existing schedule
+        method = 'PUT'; // Or 'POST' depending on your API
+        url = '/accounts/admin/work_schedules/' + scheduleId;
+    } else {
+        // **CREATING** a NEW schedule (Your current use case)
+        method = 'POST';
+        // *** FIX IS HERE ***: Target the correct base URL for creation
+        url = '/accounts/admin/work_schedules/'; 
+    }
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scheduleData)
+    })
+    .then(response => {
+        // Handle response...
+    })
+    .catch(error => {
+        // Handle error...
+    });
+}
+
+    
+
+    // Example of how the URL should be constructed for a new schedule creation
+function saveSchedule() {
+    // Assuming getScheduleIdFromForm() returns null/undefined for a new schedule
+    var scheduleId = getScheduleIdFromForm(); 
+    var url;
+    
+    if (scheduleId) {
+        // For editing an existing schedule
+        url = '/accounts/admin/work_schedules/' + scheduleId;
+    } else {
+        // *** FIX IS HERE *** For creating a NEW schedule, use the base URL
+        url = '/accounts/admin/work_schedules/'; 
+    }
+    
+    fetch(url, {
+        method: 'POST', // or 'PUT' if editing
+        // ... rest of your request details ...
+    })
+    // ... rest of the function ...
+}
+
+
+async function submitSchedule(e) {
+    e.preventDefault();
+
+    const formData = new FormData(scheduleForm);
+    formData.delete('csrfmiddlewaretoken');
+
+    const action = modalAction.value;
+    const scheduleId = modalScheduleId.value.trim();
+
+    const data = Object.fromEntries(formData.entries());
+
+    let url;
+
+    if (action === "create") {
+        // CREATE — always use create endpoint
+        url = API.create;
+    } 
+    else if (action === "update" && scheduleId !== "") {
+        // UPDATE — only if scheduleId is valid
+        url = API.update.replace('{id}', scheduleId);
+    } 
+    else {
+        alert("Invalid schedule action or missing schedule ID");
+        return;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRFToken": CSRF_TOKEN,
+            },
+            body: JSON.stringify(data),
+        });
+
+        const responseText = await response.text();
+        let result;
+        try { result = JSON.parse(responseText); }
+        catch { throw new Error("Server returned HTML instead of JSON"); }
+
+        if (!response.ok) {
+            throw new Error(result.error || "Server error");
+        }
+
+        // success handling...
+        renderCalendar();
+        hideModal();
+
+    } catch(err) {
+        console.error(err);
+        alert("Error saving schedule: " + err.message);
+    }
+}
+let EVENTS = window.INIT_EVENTS || [];
+
+renderCalendar(EVENTS);  // DRAW EVENTS

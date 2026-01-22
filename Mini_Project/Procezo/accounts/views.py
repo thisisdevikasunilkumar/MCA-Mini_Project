@@ -17,17 +17,21 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
 from django.utils import timezone
 from django.urls import reverse
+from django.db.models import Count
 from django.core.files.storage import default_storage
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
-from .models import Staff, Register, Attendance, GoogleMeet, WorkSchedule
-from .forms import StaffRegisterForm
-from .utils_face import pil_from_base64, count_faces, get_embedding_from_pil, save_base64_to_contentfile, cosine_similarity_vec, compare_two_images
-
 from datetime import datetime, timedelta, time as dtime
 from django.utils.dateparse import parse_date, parse_time
 from django.middleware.csrf import get_token
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Max
+from .models import Staff, Register, Attendance, GoogleMeet, WorkSchedule, Emotion, Feedback, IssueReport, Productivity
+from .forms import StaffRegisterForm
+# Import the utility function
+from .utils_face import pil_from_base64, count_faces, get_embedding_from_pil, save_base64_to_contentfile, cosine_similarity_vec, compare_two_images
+from .utils import detect_emotion_from_base64_image 
 
 # ---------------- Timezone helpers ----------------
 INDIA_TZ = pytz.timezone("Asia/Kolkata")
@@ -561,7 +565,7 @@ def save_meeting(request):
         title = data["meet_title"]
         desc = data["meet_description"]
         link = data["meet_link"]
-
+        
         # ----------------------------------------------------------
         # 1) Parse ONLY 24-hour format ("HH:MM")
         # ----------------------------------------------------------
@@ -591,6 +595,7 @@ def save_meeting(request):
             meet_description=desc,
             meet_link=link,
         )
+
         return JsonResponse({"success": True})
 
     except Exception as e:
@@ -795,24 +800,60 @@ def admin_attendance_management(request):
     # Fetch all staff
     staff_list = Staff.objects.all()
     # Fetch all attendance records
-    attendance_list = Attendance.objects.select_related("staff").order_by('-date', '-attendance_id')
+    attendance = Attendance.objects.select_related("staff").order_by('-date', '-attendance_id')
 
-    today = today_india()
-    # Counts
-    active_count = Attendance.objects.filter(date=today, status='Active').count()
-    inactive_count = Attendance.objects.filter(date=today, status='Inactive').count()
-    late_count = Attendance.objects.filter(date=today, status='Late').count()
+    today = timezone.now().date()
+    week_start = today - timedelta(days=7)
+    five_months_ago = today - timedelta(days=150)
 
-    context = {
-        "staff_list": staff_list,
-        "attendance_list": attendance_list,
-        "stats": {
-            "active_today": active_count,
-            "inactive_today": inactive_count,
-            "late_today": late_count,
+    # GET values
+    status = request.GET.get('status')
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+    staff_id = request.GET.get('staff_id')
+    staff_name = request.GET.get('staff_name')
+
+    attendance_list = Attendance.objects.select_related("staff")
+
+    # ---------------- DATE FILTER ----------------
+    # If user selects date range → allow up to 5 months
+    if from_date and to_date:
+        attendance_list = attendance_list.filter(
+            date__range=[from_date, to_date],
+            date__gte=five_months_ago
+        )
+    else:
+        # Default → last 7 days
+        attendance_list = attendance_list.filter(date__gte=week_start)
+
+    # ---------------- STATUS FILTER ----------------
+    # If status is empty (All) → NO filter applied
+    if status:
+        attendance_list = attendance_list.filter(status=status)
+
+    # ---------------- STAFF FILTERS ----------------
+    if staff_id:
+        attendance_list = attendance_list.filter(
+            staff__staff_id__icontains=staff_id
+        )
+
+    if staff_name:
+        attendance_list = attendance_list.filter(
+            staff__name__icontains=staff_name
+        )
+
+    # ---------------- ORDERING ----------------
+    attendance_list = attendance_list.order_by('-date', '-attendance_id')
+
+    return render(
+        request,
+        "admin/Attendance Management.html",
+        {
+            "staff_list": staff_list,
+            "attendance": attendance,
+            "attendance_list": attendance_list
         }
-    }
-    return render(request, "admin/Attendance Management.html", context)
+    )
 
 @csrf_exempt
 def save_attendanceTime_to_staff(request):
@@ -879,22 +920,21 @@ def save_attendanceTime_to_staff(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method. Only POST is allowed"})
 
-def has_conflict(staff, date_obj, start_t, end_t, exclude_id=None):
-    # This logic is copied from your previous code and is assumed correct for your models
-    qs = WorkSchedule.objects.filter(staff=staff, date=date_obj)
+def has_conflict(staff, start_dt, end_dt, exclude_id=None):
+    if not start_dt or not end_dt:
+        return False
+    
+    # Find schedules that overlap with the given time range.
+    # An overlap occurs if (s.start_time < end_dt) and (s.end_time > start_dt).
+    qs = WorkSchedule.objects.filter(
+        staff=staff,
+        start_time__lt=end_dt,
+        end_time__gt=start_dt
+    )
     if exclude_id:
         qs = qs.exclude(schedule_id=exclude_id)
-    for s in qs:
-        if not s.start_time or not s.end_time or not start_t or not end_t:
-            continue
-        # convert to minutes
-        s_start = s.start_time.hour*60 + s.start_time.minute
-        s_end = s.end_time.hour*60 + s.end_time.minute
-        new_start = start_t.hour*60 + start_t.minute
-        new_end = end_t.hour*60 + end_t.minute
-        if (new_start < s_end and new_end > s_start):
-            return True
-    return False
+        
+    return qs.exists()
 
 # --- PAGE RENDERING VIEW ---
 def admin_work_schedule_page(request):
@@ -902,15 +942,15 @@ def admin_work_schedule_page(request):
     schedules = WorkSchedule.objects.select_related('staff').all()
     events = []
     for s in schedules:
-        if not s.date:
+        if not s.start_time:
             continue
         events.append({
             'id': s.schedule_id,
             'title': s.title,
             'staff_id': s.staff.staff_id if hasattr(s.staff,'staff_id') else s.staff.pk,
             'staff_name': getattr(s.staff,'name',str(s.staff)),
-            'date': s.date.strftime('%Y-%m-%d'),
-            'start': s.start_time.strftime('%H:%M') if s.start_time else '',
+            'date': s.start_time.strftime('%Y-%m-%d'),
+            'start': s.start_time.strftime('%H:%M'),
             'end': s.end_time.strftime('%H:%M') if s.end_time else '',
             'event_type': s.event_type,
             'repeat': getattr(s, 'repeat', 'none'),
@@ -937,14 +977,14 @@ def work_schedules_json(request):
     events = []
     for s in qs:
         # ... (same logic as in admin_work_schedule_page for formatting) ...
-        if not s.date: continue
+        if not s.start_time: continue
         events.append({
             'id': s.schedule_id,
             'title': s.title,
             'staff_id': s.staff.staff_id if hasattr(s.staff,'staff_id') else s.staff.pk,
             'staff_name': getattr(s.staff,'name',str(s.staff)),
-            'date': s.date.strftime('%Y-%m-%d'),
-            'start': s.start_time.strftime('%H:%M') if s.start_time else '',
+            'date': s.start_time.strftime('%Y-%m-%d'),
+            'start': s.start_time.strftime('%H:%M'),
             'end': s.end_time.strftime('%H:%M') if s.end_time else '',
             'event_type': s.event_type,
             'description': s.description or '',
@@ -983,14 +1023,16 @@ def work_schedule_create(request):
 
     try:
         date_obj = parse_date(date_s)
-        # Assuming modalStartTime and modalEndTime are correctly set to type="time"
-        start_t = parse_time(start_s) if start_s else None
+        start_t = parse_time(start_s) if start_s else dtime.min 
         end_t = parse_time(end_s) if end_s else None
         repeat_until_dt = parse_date(repeat_until) if repeat_until else None
+
+        start_dt = datetime.combine(date_obj, start_t)
+        end_dt = datetime.combine(date_obj, end_t) if date_obj and end_t else None
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Invalid Date or Time format. Ensure time is HH:MM.'}, status=400)
 
-    if start_t and end_t and has_conflict(staff, date_obj, start_t, end_t):
+    if has_conflict(staff, start_dt, end_dt):
         return JsonResponse({'success': False, 'error': 'Conflict detected: Staff is already scheduled at this time.'}, status=400)
 
     created = []
@@ -998,9 +1040,8 @@ def work_schedule_create(request):
         s = WorkSchedule.objects.create(
             title=title,
             staff=staff,
-            date=date_obj,
-            start_time=start_t,
-            end_time=end_t,
+            start_time=start_dt,
+            end_time=end_dt,
             event_type=event_type,
             description=description,
             repeat=repeat,
@@ -1013,8 +1054,8 @@ def work_schedule_create(request):
             'title': s.title,
             'staff_id': staff.staff_id,
             'staff_name': staff.name,
-            'date': s.date.strftime('%Y-%m-%d'),
-            'start': s.start_time.strftime('%H:%M') if s.start_time else '',
+            'date': s.start_time.strftime('%Y-%m-%d'),
+            'start': s.start_time.strftime('%H:%M'),
             'end': s.end_time.strftime('%H:%M') if s.end_time else '',
             'event_type': s.event_type,
             'description': s.description or '',
@@ -1022,7 +1063,7 @@ def work_schedule_create(request):
         
         # Repeating schedule logic (copied from your previous code)
         if s.repeat != 'none' and s.repeat_until:
-            cur = s.date
+            cur = s.start_time.date()
             while True:
                 # ... (timedelta logic for daily, weekly, monthly) ...
                 if s.repeat == 'daily': cur += timedelta(days=1)
@@ -1030,15 +1071,18 @@ def work_schedule_create(request):
                 elif s.repeat == 'monthly': cur += timedelta(days=30) 
                 
                 if cur > s.repeat_until: break
+
+                new_start_time = datetime.combine(cur, s.start_time.time())
+                new_end_time = datetime.combine(cur, s.end_time.time()) if s.end_time else None
                 
                 ns = WorkSchedule.objects.create(
-                    title=s.title, staff=staff, date=cur, start_time=s.start_time,
-                    end_time=s.end_time, event_type=s.event_type, description=s.description, status='Pending'
+                    title=s.title, staff=staff, start_time=new_start_time,
+                    end_time=new_end_time, event_type=s.event_type, description=s.description, status='Pending'
                 )
                 created.append({
                     'id': ns.schedule_id, 'title': ns.title, 'staff_id': staff.staff_id, 
-                    'staff_name': staff.name, 'date': ns.date.strftime('%Y-%m-%d'), 
-                    'start': ns.start_time.strftime('%H:%M') if ns.start_time else '',
+                    'staff_name': staff.name, 'date': ns.start_time.strftime('%Y-%m-%d'), 
+                    'start': ns.start_time.strftime('%H:%M'),
                     'end': ns.end_time.strftime('%H:%M') if ns.end_time else '',
                     'event_type': ns.event_type, 'description': ns.description or '',
                 })
@@ -1065,16 +1109,29 @@ def work_schedule_update(request, pk):
         
     try:
         # Apply updates
-        if 'date' in data: s.date = parse_date(data.get('date'))
-        if 'start' in data: s.start_time = parse_time(data.get('start')) if data.get('start') else None
-        if 'end' in data: s.end_time = parse_time(data.get('end')) if data.get('end') else None
+        new_date = parse_date(data['date']) if 'date' in data and data.get('date') else s.start_time.date()
+        new_start_time_part = parse_time(data['start']) if 'start' in data and data.get('start') else s.start_time.time()
+        
+        if 'end' in data:
+            new_end_time_part = parse_time(data['end']) if data.get('end') else None
+        else:
+            new_end_time_part = s.end_time.time() if s.end_time else None
+
+        if new_date and new_start_time_part:
+            s.start_time = datetime.combine(new_date, new_start_time_part)
+        
+        if new_date and new_end_time_part:
+            s.end_time = datetime.combine(new_date, new_end_time_part)
+        else:
+            s.end_time = None
+
         if 'title' in data: s.title = data.get('title')
         if 'event_type' in data: s.event_type = data.get('event_type')
         if 'description' in data: s.description = data.get('description')
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Invalid Date or Time format.'}, status=400)
         
-    if s.start_time and s.end_time and has_conflict(s.staff, s.date, s.start_time, s.end_time, exclude_id=s.schedule_id):
+    if has_conflict(s.staff, s.start_time, s.end_time, exclude_id=s.schedule_id):
         return JsonResponse({'success': False, 'error': 'Conflict detected'}, status=400)
     
     try:
@@ -1116,7 +1173,7 @@ def staff_work_schedule_list(request):
         return render(request, 'staff/Work Schedule List.html', {'schedules': []})
 
     # Filter schedules only for the current staff member
-    schedules = WorkSchedule.objects.filter(staff=staff).order_by('date')
+    schedules = WorkSchedule.objects.filter(staff=staff).order_by('start_time')
     
     return render(request, 'staff/Work Schedule List.html', {'schedules': schedules})
 
@@ -1195,24 +1252,34 @@ def staff_reschedule(request, schedule_id):
         # 2. Update schedule object fields if new data is provided
         updated = False
         
-        if new_date_s:
-            schedule.date = parse_date(new_date_s)
-            updated = True
-            
+        new_date = parse_date(new_date_s) if new_date_s else schedule.start_time.date()
+        
         if new_start_s:
-            schedule.start_time = parse_time(new_start_s)
+            new_start_time_part = parse_time(new_start_s)
+            schedule.start_time = datetime.combine(new_date, new_start_time_part)
             updated = True
-            
+        elif new_date_s: # date changed but not time
+            schedule.start_time = schedule.start_time.replace(year=new_date.year, month=new_date.month, day=new_date.day)
+            updated = True
+
         if new_end_s:
-            schedule.end_time = parse_time(new_end_s)
+            if schedule.end_time:
+                new_end_time_part = parse_time(new_end_s)
+                schedule.end_time = datetime.combine(new_date, new_end_time_part)
             updated = True
-            
+        elif 'end' in data and not data.get('end'):
+            schedule.end_time = None
+            updated = True
+        elif new_date_s and schedule.end_time: # date changed but not time
+            schedule.end_time = schedule.end_time.replace(year=new_date.year, month=new_date.month, day=new_date.day)
+            updated = True
+
         # 3. Validation and Conflict Check
         if not updated:
             return JsonResponse({'success': False, 'error': 'No reschedule data provided.'}, status=400)
 
         # Assuming has_conflict is available
-        if has_conflict(schedule.staff, schedule.date, schedule.start_time, schedule.end_time, exclude_id=schedule.schedule_id):
+        if has_conflict(schedule.staff, schedule.start_time, schedule.end_time, exclude_id=schedule.schedule_id):
             return JsonResponse({'success': False, 'error': 'Reschedule failed: Conflict detected with another shift.'}, status=400)
             
         # 4. Save and return success
@@ -1231,9 +1298,154 @@ def staff_reschedule(request, schedule_id):
     except Exception as e:
         print(f"Reschedule error: {e}")
         return JsonResponse({'success': False, 'error': f'An internal server error occurred: {e}'}, status=500)
+
+ 
+def work_schedules_page(request):
+    schedules = WorkSchedule.objects.all()
+
+    events = []
+    for s in schedules:
+        if not s.start_time:
+            continue
+        events.append({
+            "id": s.schedule_id,
+            "title": s.title,
+            "staff": s.staff.staff_id,
+            "event_type": s.event_type,
+            "start": s.start_time.isoformat(),
+            "end": s.end_time.isoformat() if s.end_time else None,
+            "date": s.start_time.strftime("%Y-%m-%d"),
+            "description": s.description,
+        })
+
+    return render(request, "admin/work_schedules.html", {
+        "staff_list": Staff.objects.all(),
+        "events_json": json.dumps(events, cls=DjangoJSONEncoder),
+        "api_urls": json.dumps({
+            "create": reverse("accounts:work_schedule_create"),
+            "update": "/accounts/admin/work_schedules/api/update/<id>/",
+            "delete": "/accounts/admin/work_schedules/api/delete/<id>/",
+            "events": reverse("accounts:work_schedules_json")
+        })
+    })
     
 def admin_emotion_management(request):
-    return render(request, "admin/Emotion Management.html")
+    today = date.today()
+
+    # ------------------------------------
+    # 1) TODAY'S EMOTIONS (FULL QUERYSET)
+    # ------------------------------------
+    emotions_today = Emotion.objects.filter(timestamp__date=today)
+
+    # ------------------------------------
+    # DISTINCT STAFF COUNTS PER EMOTION (CORRECTED)
+    # ------------------------------------
+    emotion_counts = {
+        "Happy": emotions_today.filter(emotion_type="Happy").values('staff').distinct().count(),
+        "Sad": emotions_today.filter(emotion_type="Sad").values('staff').distinct().count(),
+        "Neutral": emotions_today.filter(emotion_type="Neutral").values('staff').distinct().count(),
+        "Angry": emotions_today.filter(emotion_type="Angry").values('staff').distinct().count(),
+        "Tired": emotions_today.filter(emotion_type="Tired").values('staff').distinct().count(),
+        "Focused": emotions_today.filter(emotion_type="Focused").values('staff').distinct().count(),
+    }
+
+    # ------------------------------------
+    # 2) INDIVIDUAL STAFF REPORTS
+    # ------------------------------------
+    all_staff = Staff.objects.all().order_by('staff_id')
+    reports = []
+
+    for staff in all_staff:
+
+        # Latest emotion for today, else latest overall
+        latest_emotion = (
+            Emotion.objects.filter(staff=staff, timestamp__date=today).order_by('-timestamp').first()
+            or Emotion.objects.filter(staff=staff).order_by('-timestamp').first()
+        )
+
+        # Today's productivity or latest
+        productivity_today = Productivity.objects.filter(
+            staff=staff, date=today
+        ).order_by('-date').first()
+
+        latest_prod = productivity_today or (
+            Productivity.objects.filter(staff=staff).order_by('-date').first()
+        )
+
+        # Latest feedback
+        latest_feedback = Feedback.objects.filter(staff=staff).order_by('-created_at').first()
+
+        # Latest issue
+        latest_issue = IssueReport.objects.filter(staff=staff).order_by('-created_at').first()
+
+        # Combine into report list
+        reports.append({
+            'staff': staff,
+            'emotion': latest_emotion,      # can be None
+            'productivity': latest_prod,    # can be None
+            'feedback': latest_feedback,    # can be None
+            'issue': latest_issue,          # can be None
+        })
+
+    # ------------------------------------
+    # CONTEXT
+    # ------------------------------------
+    context = {
+        'emotion_counts': emotion_counts,
+        'reports': reports,
+        'today': today,
+    }
+
+    return render(request, 'admin/Emotion Management.html', context)
+
+
+@csrf_exempt
+def ajax_submit_feedback(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Invalid request method"})
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+
+        staff_id = data.get("staff_id")
+        message = data.get("message")
+
+        if not staff_id or not message:
+            return JsonResponse({"ok": False, "error": "Missing data"})
+
+        staff = Staff.objects.get(pk=staff_id)
+
+        Feedback.objects.create(
+            staff=staff,
+            message=message
+        )
+
+        return JsonResponse({"ok": True})
+
+    except Staff.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Staff not found"})
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)})
+
+def submit_issue(request):
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        staff_id = data.get('staff_id')
+        current_problem = data.get('current_problem', '').strip()
+        root_cause = data.get('root_cause', '').strip()
+        proposed_action = data.get('proposed_action', '').strip()
+        if not current_problem:
+            return JsonResponse({'ok': False, 'error': 'Current problem required'}, status=400)
+        staff = get_object_or_404(Staff, pk=staff_id)
+        issue = IssueReport.objects.create(
+            staff=staff,
+            current_problem=current_problem,
+            root_cause=root_cause,
+            proposed_action=proposed_action
+        )
+        return JsonResponse({'ok': True, 'issue_id': issue.issue_id})
+    return JsonResponse({'ok': False}, status=405)
 
 # ..............................................................
 # -------------------- Staff Dashboard URLs --------------------
@@ -1267,19 +1479,20 @@ def staff_dashboard(request):
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).order_by('dob__month', 'dob__day')
 
-    # ---------------------------------------------
-    # UPCOMING BIRTHDAYS (next 7 days)
-    # ---------------------------------------------
+    # ------------ Upcoming Birthdays ------------
     upcoming_birthdays = Register.objects.filter(
         Q(dob__month=today.month, dob__day__gte=today.day) |
         Q(dob__month=next_week.month, dob__day__lte=next_week.day)
     ).order_by('dob__month', 'dob__day')[:5]
 
-    # ----------- Filter GoogleMeet by staff.job_type -----------
+    # ------------ Today's Meetings (by staff.job_type) ------------
     todays_meets = GoogleMeet.objects.filter(
         meet_time__date=today,
-        job_type=staff.job_type  # <--- Only show matching job_type
+        job_type=staff.job_type
     ).order_by('meet_time')
+
+    # ✔ Count meetings for this staff
+    todays_meet_count = todays_meets.count()
 
     return render(
         request,
@@ -1290,9 +1503,11 @@ def staff_dashboard(request):
             'birthday_this_week_count': birthday_this_week_count,
             'birthday_this_week_list': birthday_this_week_list,
             'upcoming_birthdays': upcoming_birthdays,
-            'todays_meets': todays_meets
+            'todays_meets': todays_meets,
+            'todays_meet_count': todays_meet_count,  # ✔ Added
         }
     )
+
 
 # Staff profile view
 def staff_profile(request):
@@ -1395,11 +1610,129 @@ def staff_attendance(request):
     return render(request, 'staff/Attendance.html', context)
 
 def staff_emotion(request):
-    staff = None
+    # 1) Logged-in staff
     staff_id = request.session.get('staff_id')
-    if staff_id:
-        staff = get_object_or_404(Staff, staff_id=staff_id)
+    if not staff_id:
+        return render(request, 'staff/Emotion.html')
+
+    staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    # 2) Fetch ALL emotions of this staff (latest first)
+    all_emotions = Emotion.objects.filter(staff=staff).order_by('-timestamp')
+
+    # 3) Today's emotion counts
+    today = date.today()
+    emotions_today = all_emotions.filter(timestamp__date=today)
+
+    emotion_counts = {
+        "Happy": emotions_today.filter(emotion_type="Happy").count(),
+        "Sad": emotions_today.filter(emotion_type="Sad").count(),
+        "Neutral": emotions_today.filter(emotion_type="Neutral").count(),
+        "Angry": emotions_today.filter(emotion_type="Angry").count(),
+        "Tired": emotions_today.filter(emotion_type="Tired").count(),
+        "Focused": emotions_today.filter(emotion_type="Focused").count(),
+    }
+
+    # 4) Feedback
+    feedback_list = Feedback.objects.filter(staff=staff).order_by('-created_at')
+    feedback_count = feedback_list.count()
+
+    # 5) Send data to template
     context = {
-        'staff': staff
-    }    
-    return render(request, 'staff/Emotion.html',context)
+        'staff': staff,
+        'emotion_counts': emotion_counts,
+        'emotions_today': emotions_today,
+        'all_emotions': all_emotions,      # 👈 important
+        'feedback_count': feedback_count,
+        'feedback_list': feedback_list,
+    }
+
+    return render(request, 'staff/Emotion.html', context)
+
+
+@csrf_exempt
+def save_admin_reply(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        reply_text = data.get("reply_text")
+        
+        staff_id = request.session.get("staff_id")
+        if not staff_id:
+            return JsonResponse({"status": "error", "message": "Staff not logged in"})
+
+        staff = Staff.objects.get(staff_id=staff_id)
+
+        # Insert into IssueReport
+        IssueReport.objects.create(
+            staff=staff,
+            current_problem=reply_text,
+            created_at=timezone.now()
+        )
+
+        return JsonResponse({"status": "success"})
+
+    return JsonResponse({"status": "error", "message": "Invalid request"})
+
+@require_POST
+def record_emotion(request):
+    """
+    Frontend-ൽ നിന്ന് ലഭിക്കുന്ന ക്യാമറ ഫ്രെയിമിൽ Emotion Detection നടത്തി ഡാറ്റാബേസിൽ സേവ് ചെയ്യുന്നു.
+    ഇവിടെ 'Neutral' വികാരവും സേവ് ചെയ്യപ്പെടുന്നു.
+    """
+    staff_id = request.session.get('staff_id')
+    
+    try:
+        if request.content_type != 'application/json':
+            return JsonResponse({'status': 'error', 'message': 'Invalid Content-Type'}, status=400)
+
+        data = json.loads(request.body)
+        
+        # Fallback staff_id logic (if session is missing, check payload)
+        if not staff_id:
+            staff_id = data.get('staff_id') or data.get('staffId')
+
+        full_image_data = data.get('image', '')
+        base64_image = full_image_data.split(',')[1] if ',' in full_image_data else full_image_data
+
+    except (json.JSONDecodeError, IndexError, AttributeError) as e:
+        return JsonResponse({'status': 'error', 'message': f'Invalid image data: {e}'}, status=400)
+
+    # 1. Detect emotion
+    detected_emotion = detect_emotion_from_base64_image(base64_image)
+
+    print(f"record_emotion called: staff_id={staff_id} detected_emotion={detected_emotion}")
+
+    # *** പ്രധാന മാറ്റം: None അല്ലെങ്കിൽ സേവ് ചെയ്യുക (Neutral ഉൾപ്പെടെ) ***
+    if detected_emotion: 
+        try:
+            if not staff_id:
+                return JsonResponse({'status': 'error', 'message': 'Staff not identified'}, status=401)
+
+            staff = get_object_or_404(Staff, staff_id=staff_id) # Use get_object_or_404 for cleaner code
+            
+            # Timestamp calculation (assuming now_india and INDIA_TZ are defined elsewhere)
+            # Use timezone.now() if you rely on Django's USE_TZ=True settings
+            store_ts = timezone.now()
+            
+            print(f"Attempting to save emotion: staff={staff_id}, emotion={detected_emotion}, ts={store_ts}")
+
+            obj = Emotion.objects.create(
+                staff=staff,
+                emotion_type=detected_emotion,
+                timestamp=store_ts
+            )
+
+            print(f"Saved emotion record: id={obj.emotion_id}, emotion={obj.emotion_type}")
+
+            return JsonResponse({'status': 'success', 'emotion': detected_emotion, 'id': obj.emotion_id, 'timestamp': str(obj.timestamp)})
+
+        except Staff.DoesNotExist:
+            print(f"record_emotion error: Staff not found for staff_id={staff_id}")
+            return JsonResponse({'status': 'error', 'message': 'Staff not found'}, status=404)
+        except Exception as e:
+            print(f"Database save error: {e}")
+            return JsonResponse({'status': 'error', 'message': 'Could not save emotion', 'error': str(e)}, status=500)
+    else:
+        # Returns info if detection failed (returned None)
+        msg = 'Emotion detection failed on frame (returned None).'
+        return JsonResponse({'status': 'info', 'message': msg, 'detected_emotion': detected_emotion}, status=200)

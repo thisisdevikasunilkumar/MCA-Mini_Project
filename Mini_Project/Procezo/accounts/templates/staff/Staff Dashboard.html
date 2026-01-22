@@ -50,7 +50,7 @@
             <li><a href="#"><img src="{% static 'image/dashboard/work schedule.png' %}" alt="Work Schedule" class="icon" /><span>Work Schedule</span></a></li>
             <li><a href="#"><img src="{% static 'image/dashboard/key logs.png' %}" alt="Key Logs" class="icon" /><span>Key Logs</span></a></li>
             <li><a href="{% url 'accounts:staff_emotion' %}"><img src="{% static 'image/dashboard/Emotion.png' %}" alt="Emotion" class="icon" /><span>Emotion</span></a></li>
-            <li><a href="#"><img src="{% static 'image/dashboard/Salary.png' %}" alt="Salary" class="icon" /><span>Salary</span></a></li>
+            <!-- <li><a href="#"><img src="{% static 'image/dashboard/Salary.png' %}" alt="Salary" class="icon" /><span>Salary</span></a></li> -->
           </ul>
         </div>
     </aside>
@@ -68,29 +68,28 @@
                 <div class="live-indicator"><span class="live-dot"></span> <span class="live-text">Live</span>
                 </div>
               </header>
-              <div class="camera-viewport"><!-- Live video feed -->
-                <video id="camera-video" autoplay playsinline muted></video><!-- Error message (hidden by default) -->
-                <div id="camera-error" class="camera-error" style="display: none;">
-                <svg class="error-icon" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9V11M12 15H12.01M5.07 19H18.93C20.14 19 21 17.94 20.49 16.86L13.56 4.14C13.05 3.06 11.95 3.06 11.44 4.14L4.51 16.86C4 17.94 4.86 19 5.07 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <p class="error-text">Camera access denied or unavailable</p><button id="retry-button" class="retry-button">Retry</button>
-                </div><!-- Scanning line effect -->
-                <div class="scan-line"></div><!-- Corner brackets -->
-                <div class="corner-bracket top-left"></div>
-                <div class="corner-bracket top-right"></div>
-                <div class="corner-bracket bottom-left"></div>
-                <div class="corner-bracket bottom-right"></div><!-- Center focus -->
-                <div class="camera-focus"></div><!-- Timestamp -->
-                <div class="camera-timestamp" id="timestamp">
-                  <!-- 00:00:00 -->
-                </div>
-                <!-- Camera toggle button --> 
-                <button id="camera-toggle" class="camera-toggle" aria-label="Toggle camera">
-                  <svg class="toggle-icon" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M23 7L16 12L23 17V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" /> <rect x="1" y="5" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span id="toggle-text">ON</span> 
-                </button>
+              <div class="camera-viewport">
+                  <video id="camera-video" autoplay playsinline muted></video>
+                  <div id="camera-error" class="camera-error" style="display: none;">
+                      <svg class="error-icon" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9V11M12 15H12.01M5.07 19H18.93C20.14 19 21 17.94 20.49 16.86L13.56 4.14C13.05 3.06 11.95 3.06 11.44 4.14L4.51 16.86C4 17.94 4.86 19 5.07 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <p class="error-text">Camera access denied or unavailable</p><button id="retry-button" class="retry-button">Retry</button>
+                  </div>
+                  <div class="scan-line"></div>
+                  <div class="corner-bracket top-left"></div>
+                  <div class="corner-bracket top-right"></div>
+                  <div class="corner-bracket bottom-left"></div>
+                  <div class="corner-bracket bottom-right"></div>
+                  <div class="camera-focus"></div>
+                  <div class="camera-timestamp" id="timestamp">
+                      </div>
+                  <button id="camera-toggle" class="camera-toggle" aria-label="Toggle camera">
+                      <svg class="toggle-icon" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M23 7L16 12L23 17V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" /> <rect x="1" y="5" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <span id="toggle-text">ON</span> 
+                  </button>             
+                  <canvas id="emotion-canvas" style="display: none;"></canvas>  
               </div>
             </div>              
           </div>         
@@ -126,7 +125,7 @@
 
         <div class="stat-card" id="statCard3">
           <div class="stat-icon" id="statIcon3">📅</div>
-          <div class="stat-value" id="statValue3">8</div>
+          <div class="stat-value" id="statValue3">{{ todays_meet_count }}</div>
           <div class="stat-label" id="statLabel3">Meetings Today</div>
         </div>
 

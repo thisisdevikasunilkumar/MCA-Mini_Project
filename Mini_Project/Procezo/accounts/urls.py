@@ -33,9 +33,12 @@ urlpatterns = [
     path('save-attendanceTime/', views.save_attendanceTime_to_staff, name='save_attendanceTime'),
     
     path('adminEmotionManagement/', views.admin_emotion_management, name='admin_emotion_management'),
+    path('ajax/submit-feedback/', views.ajax_submit_feedback, name='ajax_submit_feedback'),
+    path('ajax/submit-issue/', views.submit_issue, name='submit_issue'),
 
 
-path('admin/work_schedules/', views.admin_work_schedule_list, name='admin_work_schedule_list'),
+
+    path('admin/work_schedules/', views.admin_work_schedule_list, name='admin_work_schedule_list'),
     
     # --- API ENDPOINTS ---
     
@@ -60,4 +63,8 @@ path('admin/work_schedules/', views.admin_work_schedule_list, name='admin_work_s
     path('staffAttendance/', views.staff_attendance, name='staff_attendance'),
 
     path('staffEmotion/', views.staff_emotion, name='staff_emotion'),
+    path('save-reply/', views.save_admin_reply, name='save_admin_reply'),
+    path('staff/record-emotion/', views.record_emotion, name='record_emotion'),
+    # Backwards-compatible alias: accept POSTs sent to /accounts/record-emotion/
+    path('record-emotion/', views.record_emotion, name='record_emotion_alias'),
 ]
