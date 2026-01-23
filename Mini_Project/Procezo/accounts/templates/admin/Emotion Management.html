@@ -13,254 +13,302 @@
 <link rel="stylesheet" href="{% static 'css/admin/EmotionManagement.css' %}" />
 <!-- Emotion Page -->
 <div class="main">
-  <div class="container">
-    <h2>Emotion Management</h2>
-    <p>Track and manage staff emotion records</p>
+    <div class="container">
+        <h2>Emotion Management</h2>
+        <p>Track and manage staff emotion records</p>
 
-    <div class="emotion-stats-grid">
-      <div class="emotion-stat-card">
-        <div class="stat-icon">😊</div>
-        <div class="stat-value">78%</div>
-        <div class="stat-label">Positive Today</div>
-      </div>
+        <div class="emotion-stats-grid">
+            <!-- Positive Today -->
+            <div class="emotion-stat-card">
+                <div class="stat-icon">😊</div>
+                <div class="stat-value">
+                    {{ positive_today_percent }}%
+                </div>
+                <div class="stat-label">Positive Today</div>
+            </div>
 
-      <div class="emotion-stat-card">
-        <div class="stat-icon">📈</div>
-        <div class="stat-value">+12%</div>
-        <div class="stat-label">vs Last Week</div>
-      </div>
+            <!-- Vs Last Week -->
+            <div class="emotion-stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value">
+                    {% if positive_change > 0 %}
+                        +{{ positive_change }}%
+                    {% else %}
+                        {{ positive_change }}%
+                    {% endif %}
+                </div>
+                <div class="stat-label">vs Last Week</div>
+            </div>
 
-      <div class="emotion-stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-value">124</div>
-        <div class="stat-label">Responses</div>
-      </div>
-    </div>
-
-    <div>
-      <div class="card-header">
-        <h2>Today's Emotional State</h2>
-      </div>
-
-      <div class="emotion-grid">
-        <div class="emotion-card">
-          <div class="emotion-icon">😄</div>
-          <div class="emotion-label">Happy</div>
-          <div class="emotion-count">{{ emotion_counts.Happy }} staff</div>
+            <!-- Responses -->
+            <div class="emotion-stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value">
+                    {{ responses_today }}
+                </div>
+                <div class="stat-label">Responses</div>
+            </div>
         </div>
 
-        <div class="emotion-card">
-          <div class="emotion-icon">😢</div>
-          <div class="emotion-label">Sad</div>
-          <div class="emotion-count">{{ emotion_counts.Sad }} staff</div>
+        <div>
+            <div class="card-header">
+                <h2>Today's Emotional State</h2>
+            </div>
+
+            <div class="emotion-grid">
+                <div class="emotion-card">
+                    <div class="emotion-icon">😄</div>
+                    <div class="emotion-label">Happy</div>
+                    <div class="emotion-count">{{ emotion_counts.Happy }} staff</div>
+                </div>
+
+                <div class="emotion-card">
+                    <div class="emotion-icon">😢</div>
+                    <div class="emotion-label">Sad</div>
+                    <div class="emotion-count">{{ emotion_counts.Sad }} staff</div>
+                </div>
+
+                <div class="emotion-card">
+                    <div class="emotion-icon">😐</div>
+                    <div class="emotion-label">Neutral</div>
+                    <div class="emotion-count">{{ emotion_counts.Neutral }} staff</div>
+                </div>
+
+                <div class="emotion-card">
+                    <div class="emotion-icon">😠</div>
+                    <div class="emotion-label">Angry</div>
+                    <div class="emotion-count">{{ emotion_counts.Angry }} staff</div>
+                </div>
+
+                <div class="emotion-card">
+                    <div class="emotion-icon">😴</div>
+                    <div class="emotion-label">Tired</div>
+                    <div class="emotion-count">{{ emotion_counts.Tired }} staff</div>
+                </div>
+
+                <div class="emotion-card">
+                    <div class="emotion-icon">🤓</div>
+                    <div class="emotion-label">Focused</div>
+                    <div class="emotion-count">{{ emotion_counts.Focused }} staff</div>
+                </div>
+            </div>
         </div>
 
-        <div class="emotion-card">
-          <div class="emotion-icon">😐</div>
-          <div class="emotion-label">Neutral</div>
-          <div class="emotion-count">{{ emotion_counts.Neutral }} staff</div>
+        <div class="card-header">
+            <h2>Individual Reports</h2>
         </div>
 
-        <div class="emotion-card">
-          <div class="emotion-icon">😠</div>
-          <div class="emotion-label">Angry</div>
-          <div class="emotion-count">{{ emotion_counts.Angry }} staff</div>
-        </div>
+        <form method="get" id="filterForm" class="filter-bar">
+            <!-- Status -->
+            <div class="filter-group">
+                <label>Status</label>
+                <select name="status" onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="Happy" {% if request.GET.status == "Happy" %}selected{% endif %}>Happy</option>
+                <option value="Sad" {% if request.GET.status == "Sad" %}selected{% endif %}>Sad</option>
+                <option value="Neutral" {% if request.GET.status == "Neutral" %}selected{% endif %}>Neutral</option>
+                <option value="Angry" {% if request.GET.status == "Angry" %}selected{% endif %}>Angry</option>
+                <option value="Tired" {% if request.GET.status == "Tired" %}selected{% endif %}>Tired</option>
+                <option value="Focused" {% if request.GET.status == "Focused" %}selected{% endif %}>Focused</option>
+                </select>
+            </div>
 
-        <div class="emotion-card">
-          <div class="emotion-icon">😴</div>
-          <div class="emotion-label">Tired</div>
-          <div class="emotion-count">{{ emotion_counts.Tired }} staff</div>
-        </div>
+            <!-- Staff ID -->
+            <div class="filter-group">
+                <label>Staff ID</label>
+                <input type="text" name="staff_id"
+                    placeholder="S001"
+                    value="{{ request.GET.staff_id }}"
+                    onchange="this.form.submit()">
+            </div>
+            
+            <!-- Staff Name -->
+            <div class="filter-group">
+                <label>Staff Name</label>
+                <input type="text" name="staff_name"
+                    placeholder="Enter Staff Name"
+                    value="{{ request.GET.staff_name }}"
+                    onchange="this.form.submit()">
+            </div>
+        </form>
 
-        <div class="emotion-card">
-          <div class="emotion-icon">🤓</div>
-          <div class="emotion-label">Focused</div>
-          <div class="emotion-count">{{ emotion_counts.Focused }} staff</div>
-        </div>
-      </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Staff ID</th>              
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Productivity</th>
+                        <th>Feedback</th>
+                        <th>Problem/Issue</th>
+                        <th>Overall</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
 
-    </div>
+                <tbody>
+                    {% for r in reports %}
+                    <tr>
+                        <td>{{ r.staff.staff_id }}</td>
+                        <td>{{ r.staff.name }}</td>
 
-    <div>
-    <div class="card-header">
-        <h2>Individual Reports</h2>
-    </div>
-
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Staff ID</th>              
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Productivity</th>
-                    <th>Feedback</th>
-                    <th>Problem/Issue</th>
-                    <th>Overall</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for r in reports %}
-                <tr>
-                    <td>{{ r.staff.staff_id }}</td>
-                    <td>{{ r.staff.name }}</td>
-
-                    <td>
-                        {% if r.emotion %}
-                            {% if r.emotion.emotion_type == "Happy" %} 😊 Happy
-                            {% elif r.emotion.emotion_type == "Sad" %} 😔 Sad
-                            {% elif r.emotion.emotion_type == "Neutral" %} 😐 Neutral
-                            {% elif r.emotion.emotion_type == "Angry" %} 😠 Angry
-                            {% elif r.emotion.emotion_type == "Tired" %} 😴 Tired
-                            {% elif r.emotion.emotion_type == "Focused" %} 🎯 Focused
-                            {% endif %}
-                            <div style="font-size:11px;color:#718096;">
-                                {{ r.emotion.timestamp|date:"H:i, j M Y" }}
-                            </div>
-                        {% else %}
-                            --
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if r.productivity %}
-                            {{ r.productivity.score_percent }}%
-                            <div style="font-size:11px;color:#718096;">
-                                {{ r.productivity.date }}
-                            </div>
-                        {% else %}
-                            --
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if r.feedback %}
-                            <div style="max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                {{ r.feedback.message }}
-                            </div>
-                            <div style="font-size:11px;color:#718096;">
-                                {{ r.feedback.created_at|date:"j M Y H:i" }}
-                            </div>
-                        {% else %}
-                            <span style="color:#718096;">--</span>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if r.issue %}
-                            <div style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e53e3e;font-weight:500;">
-                                {{ r.issue.current_problem }}
-                            </div>
-                            <div style="font-size:11px;color:#e53e3e;">
-                                {{ r.issue.created_at|date:"j M Y H:i" }}
-                            </div>
-                        {% else %}
-                            <span style="color:#718096;">--</span>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if r.emotion %}
-                            {% if r.emotion.emotion_type in "Happy,Focused" %}
-                                <span class="status-badge status-positive">Excellent</span>
-                            {% elif r.emotion.emotion_type == "Neutral" %}
-                                <span class="status-badge status-neutral">Good</span>
+                        <td>
+                            {% if r.emotion %}
+                                {% if r.emotion.emotion_type == "Happy" %} 😊 Happy
+                                {% elif r.emotion.emotion_type == "Sad" %} 😔 Sad
+                                {% elif r.emotion.emotion_type == "Neutral" %} 😐 Neutral
+                                {% elif r.emotion.emotion_type == "Angry" %} 😠 Angry
+                                {% elif r.emotion.emotion_type == "Tired" %} 😴 Tired
+                                {% elif r.emotion.emotion_type == "Focused" %} 🎯 Focused
+                                {% endif %}
+                                <div style="font-size:11px;color:#718096;">
+                                    {{ r.emotion.timestamp|date:"H:i, j M Y" }}
+                                </div>
                             {% else %}
-                                <span class="status-badge status-negative">Attention</span>
+                                --
                             {% endif %}
-                        {% else %}
-                            <span class="status-badge status-warning">No Data</span>
-                        {% endif %}
-                    </td>
+                        </td>
 
-                    <td>
-                        <!-- FIXED: Using staff.pk here -->
-                        <button class="btn btn-primary btn-small"
-                            data-staff-id="{{ r.staff.pk }}"
-                            data-staff-name="{{ r.staff.name }}"
-                            data-staff-emotion="{{ r.emotion.emotion_type|default:'' }}"
-                            onclick="askFeedback(this)">
-                            Ask Feedback
-                        </button>
+                        <td>
+                            {% if r.productivity %}
+                                {{ r.productivity.score_percent }}%
+                                <div style="font-size:11px;color:#718096;">
+                                    {{ r.productivity.date }}
+                                </div>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
 
-                        <button class="btn btn-secondary btn-small"
-                            data-staff-id="{{ r.staff.pk }}"
-                            data-staff-name="{{ r.staff.name }}"
-                            data-staff-issue="{{ r.issue.current_problem|default:''|escapejs }}"
-                            onclick="reportIssue(this)">
-                            Report Issue
-                        </button>
-                    </td>
+                        <td>
+                            {% if r.feedback %}
+                                <div style="max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    {{ r.feedback.message }}
+                                </div>
+                                <div style="font-size:11px;color:#718096;">
+                                    {{ r.feedback.created_at|date:"j M Y H:i" }}
+                                </div>
+                            {% else %}
+                                <span style="color:#718096;">--</span>
+                            {% endif %}
+                        </td>
 
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        <td>
+                            {% if r.issue %}
+                                <div style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e53e3e;font-weight:500;">
+                                    {{ r.issue.current_problem }}
+                                </div>
+                                <div style="font-size:11px;color:#e53e3e;">
+                                    {{ r.issue.created_at|date:"j M Y H:i" }}
+                                </div>
+                            {% else %}
+                                <span style="color:#718096;">--</span>
+                            {% endif %}
+                        </td>
 
+                        <td>
+                            {% if r.emotion %}
+                                {% if r.emotion.emotion_type in "Happy,Focused" %}
+                                    <span class="status-badge status-positive">Excellent</span>
+                                {% elif r.emotion.emotion_type == "Neutral" %}
+                                    <span class="status-badge status-neutral">Good</span>
+                                {% else %}
+                                    <span class="status-badge status-negative">Attention</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="status-badge status-warning">No Data</span>
+                            {% endif %}
+                        </td>
 
-<!-- FEEDBACK BOX -->
-<div class="content-card" id="feedback-section" style="display:none;">
-    <h3>Staff Feedback Request</h3>
+                        <td>
+                            <!-- FIXED: Using staff.pk here -->
+                            <button class="btn btn-primary btn-small"
+                                data-staff-id="{{ r.staff.pk }}"
+                                data-staff-name="{{ r.staff.name }}"
+                                data-staff-emotion="{{ r.emotion.emotion_type|default:'' }}"
+                                onclick="askFeedback(this)">
+                                Ask Feedback
+                            </button>
 
-    <div style="background:#f7fafc;padding:20px;border-radius:10px;border-left:4px solid #667eea;">
-        <div style="margin-bottom:15px;">
-            <strong id="feedback-employee-name" style="font-size:18px;"></strong>
-            <span id="feedback-emotion" style="color:#718096;"></span>
+                            <button class="btn btn-secondary btn-small"
+                                data-staff-id="{{ r.staff.pk }}"
+                                data-staff-name="{{ r.staff.name }}"
+                                data-staff-issue="{{ r.issue.current_problem|default:''|escapejs }}"
+                                onclick="reportIssue(this)">
+                                Report Issue
+                            </button>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <label style="font-weight:600;color:#4a5568;">Ask about their problem:</label>
-        <textarea id="feedback-message" rows="4" style="width:100%;padding:12px;border-radius:8px;border:2px solid #e2e8f0;"></textarea>
 
-        <div id="feedback-response" style="color:green;display:none;margin-top:10px;"></div>
+        <!-- FEEDBACK BOX -->
+        <div class="content-card" id="feedback-section" style="display:none;">
+            <h3>Staff Feedback Request</h3>
 
-        <div style="margin-top:15px;display:flex;gap:10px;">
-            <button class="btn btn-primary" onclick="submitInlineFeedback()">Send Request</button>
-            <button class="btn btn-secondary" onclick="closeFeedback()">Cancel</button>
+            <div style="background:#f7fafc;padding:20px;border-radius:10px;border-left:4px solid #667eea;">
+                <div style="margin-bottom:15px;">
+                    <strong id="feedback-employee-name" style="font-size:18px;"></strong>
+                    <span id="feedback-emotion" style="color:#718096;"></span>
+                </div>
+
+                <label style="font-weight:600;color:#4a5568;">Ask about their problem:</label>
+                <textarea id="feedback-message" rows="4" style="width:100%;padding:12px;border-radius:8px;border:2px solid #e2e8f0;"></textarea>
+
+                <div id="feedback-response" style="color:green;display:none;margin-top:10px;"></div>
+
+                <div style="margin-top:15px;display:flex;gap:10px;">
+                    <button class="btn btn-primary" onclick="submitInlineFeedback()">Send Request</button>
+                    <button class="btn btn-secondary" onclick="closeFeedback()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-card" id="issue-report-section" style="display: none;">
+            <h3>Report Issue - Why?</h3>
+
+            <div style="background: #fff5f5; padding: 20px; border-radius: 10px; border-left: 4px solid #e53e3e;">
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #2d3748; font-size: 18px;" id="issue-employee-name"></strong>
+                    <span style="color: #718096; margin-left: 10px;" id="issue-emotion"></span>
+                </div>
+
+                <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #feb2b2;">
+                    <strong style="color: #742a2a; display: block; margin-bottom: 8px;">Current Problem:</strong>
+                    <p style="margin: 0; color: #2d3748;" id="issue-current-problem"></p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label for="issue-why" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Why is this happening? (Root cause analysis):</label>
+                    <textarea id="issue-why" name="root_cause" rows="5" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="Analyze the root cause of this issue. Why is the employee facing this problem? What factors are contributing to their emotional state?"></textarea>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label for="issue-action" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Proposed Action/Solution:</label>
+                    <textarea id="issue-action" name="proposed_action" rows="4" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="What actions should be taken to address this issue? How can we help resolve their problem?"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="submitIssueReport()">Submit Report</button>
+                    <button class="btn btn-secondary" onclick="closeIssueReport()">Cancel</button>
+                </div>
+            </div>
+
+            <div id="issue-response" style="margin-top: 20px; display: none;">
+                <div style="background: #c6f6d5; padding: 15px; border-radius: 8px; color: #22543d;">
+                    <strong>✓ Issue report submitted successfully!</strong>
+                    <p style="margin: 10px 0 0;">The report has been logged and will be reviewed by management.</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="content-card" id="issue-report-section" style="display: none;">
-    <h3>Report Issue - Why?</h3>
+<script src="{% static 'js/admin/EmotionManagement.js' %}"></script>
 
-    <div style="background: #fff5f5; padding: 20px; border-radius: 10px; border-left: 4px solid #e53e3e;">
-        <div style="margin-bottom: 15px;">
-            <strong style="color: #2d3748; font-size: 18px;" id="issue-employee-name"></strong>
-            <span style="color: #718096; margin-left: 10px;" id="issue-emotion"></span>
-        </div>
-
-        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #feb2b2;">
-            <strong style="color: #742a2a; display: block; margin-bottom: 8px;">Current Problem:</strong>
-            <p style="margin: 0; color: #2d3748;" id="issue-current-problem"></p>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-            <label for="issue-why" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Why is this happening? (Root cause analysis):</label>
-            <textarea id="issue-why" name="root_cause" rows="5" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="Analyze the root cause of this issue. Why is the employee facing this problem? What factors are contributing to their emotional state?"></textarea>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-            <label for="issue-action" style="display: block; margin-bottom: 10px; color: #4a5568; font-weight: 600;">Proposed Action/Solution:</label>
-            <textarea id="issue-action" name="proposed_action" rows="4" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px;" placeholder="What actions should be taken to address this issue? How can we help resolve their problem?"></textarea>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <button class="btn btn-primary" onclick="submitIssueReport()">Submit Report</button>
-            <button class="btn btn-secondary" onclick="closeIssueReport()">Cancel</button>
-        </div>
-    </div>
-
-    <div id="issue-response" style="margin-top: 20px; display: none;">
-        <div style="background: #c6f6d5; padding: 15px; border-radius: 8px; color: #22543d;">
-            <strong>✓ Issue report submitted successfully!</strong>
-            <p style="margin: 10px 0 0;">The report has been logged and will be reviewed by management.</p>
-        </div>
-    </div>
-</div>
-
-  <script src="{% static 'js/admin/EmotionManagement.js' %}"></script>
 {% endblock %}

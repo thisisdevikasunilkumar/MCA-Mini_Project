@@ -10,9 +10,9 @@
 <link rel="stylesheet" href="{% static 'css/admin/WorkSchedule.css' %}">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<div class="ws-container">
+<div class="container">
     <header class="ws-header-bar">
-        <h1 class="ws-title">Work Schedule Management</h1>
+        <h2>Work Schedule Management</h2>
         <div class="ws-date-navigation">
             <div id="rangeLabel" class="calendar-range-label">Mon, December 1, 2025 - Sun, December 7, 2025</div>
             <div class="nav-buttons-group">
@@ -23,10 +23,10 @@
                     <svg viewBox="0 0 24 24" width="20" height="20"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
             </div>
-        </div>
+        </div> 
     </header>
 
-    <div class="ws-toolbar-controls">
+    <div class="ws-toolbar-controls">       
         <div class="toolbar-left">
             <select id="staffFilter" class="ws-select filter-select">
                 <option value="ALL">All team members</option>
@@ -39,7 +39,6 @@
         <div class="toolbar-center">
             <button id="openAddBtn" class="btn btn-primary btn-add-schedule">+ Add schedule</button>
         </div>
-
         <div class="toolbar-right">
             <div id="viewToggleGroup" class="view-toggle-group">
                 <button class="btn btn-view active" data-view="week">Week</button>
@@ -158,10 +157,10 @@
 
     window.CSRF_TOKEN = document.getElementById("csrfToken").value;
 </script>
+
 <script>
     window.INIT_EVENTS = JSON.parse(`{{ events_json|escapejs }}`);
 </script>
-
 
 <script src="{% static 'js/admin/WorkSchedule.js' %}"></script>
 
