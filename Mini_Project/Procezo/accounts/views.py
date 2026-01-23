@@ -1331,69 +1331,167 @@ def work_schedules_page(request):
     
 def admin_emotion_management(request):
     today = date.today()
+    last_week_day = today - timedelta(days=7)
 
-    # ------------------------------------
-    # 1) TODAY'S EMOTIONS (FULL QUERYSET)
-    # ------------------------------------
-    emotions_today = Emotion.objects.filter(timestamp__date=today)
+    # -----------------------------
+    # GET FILTER VALUES
+    # -----------------------------
+    status = request.GET.get('status', '').strip()
+    staff_id_q = request.GET.get('staff_id', '').strip()
+    staff_name_q = request.GET.get('staff_name', '').strip()
 
-    # ------------------------------------
-    # DISTINCT STAFF COUNTS PER EMOTION (CORRECTED)
-    # ------------------------------------
+    filters_applied = any([status, staff_id_q, staff_name_q])
+
+    # -----------------------------
+    # STAFF QUERYSET
+    # -----------------------------
+    staff_qs = Staff.objects.all()
+
+    if staff_id_q:
+        staff_qs = staff_qs.filter(staff_id__icontains=staff_id_q)
+
+    if staff_name_q:
+        staff_qs = staff_qs.filter(name__icontains=staff_name_q)
+
+    staff_qs = staff_qs.order_by('staff_id')
+
+    # -----------------------------
+    # TODAY EMOTION COUNTS (LATEST PER STAFF)
+    # -----------------------------
     emotion_counts = {
-        "Happy": emotions_today.filter(emotion_type="Happy").values('staff').distinct().count(),
-        "Sad": emotions_today.filter(emotion_type="Sad").values('staff').distinct().count(),
-        "Neutral": emotions_today.filter(emotion_type="Neutral").values('staff').distinct().count(),
-        "Angry": emotions_today.filter(emotion_type="Angry").values('staff').distinct().count(),
-        "Tired": emotions_today.filter(emotion_type="Tired").values('staff').distinct().count(),
-        "Focused": emotions_today.filter(emotion_type="Focused").values('staff').distinct().count(),
+        'Happy': 0,
+        'Sad': 0,
+        'Neutral': 0,
+        'Angry': 0,
+        'Tired': 0,
+        'Focused': 0,
     }
 
-    # ------------------------------------
-    # 2) INDIVIDUAL STAFF REPORTS
-    # ------------------------------------
-    all_staff = Staff.objects.all().order_by('staff_id')
+    today_emotions = (
+        Emotion.objects
+        .filter(timestamp__date=today)
+        .order_by('staff', '-timestamp')
+    )
+
+    seen_staff = set()
+
+    for emo in today_emotions:
+        if emo.staff_id not in seen_staff:
+            seen_staff.add(emo.staff_id)
+            if emo.emotion_type in emotion_counts:
+                emotion_counts[emo.emotion_type] += 1
+
+    total_today_responses = sum(emotion_counts.values())
+
+    # -----------------------------
+    # POSITIVE TODAY %
+    # -----------------------------
+    positive_today_percent = 0
+    if total_today_responses > 0:
+        positive_today_percent = round(
+            ((emotion_counts['Happy'] + emotion_counts['Focused']) / total_today_responses) * 100
+        )
+
+    # -----------------------------
+    # LAST WEEK POSITIVE %
+    # -----------------------------
+    last_week_emotions = (
+        Emotion.objects
+        .filter(timestamp__date=last_week_day)
+        .order_by('staff', '-timestamp')
+    )
+
+    last_week_seen = set()
+    last_week_positive = 0
+
+    for emo in last_week_emotions:
+        if emo.staff_id not in last_week_seen:
+            last_week_seen.add(emo.staff_id)
+            if emo.emotion_type in ['Happy', 'Focused']:
+                last_week_positive += 1
+
+    last_week_total = len(last_week_seen)
+
+    last_week_positive_percent = 0
+    if last_week_total > 0:
+        last_week_positive_percent = round(
+            (last_week_positive / last_week_total) * 100
+        )
+
+    # -----------------------------
+    # POSITIVE CHANGE %
+    # -----------------------------
+    positive_change = positive_today_percent - last_week_positive_percent
+
+    # -----------------------------
+    # INDIVIDUAL REPORTS
+    # -----------------------------
     reports = []
 
-    for staff in all_staff:
+    for staff in staff_qs:
 
-        # Latest emotion for today, else latest overall
-        latest_emotion = (
-            Emotion.objects.filter(staff=staff, timestamp__date=today).order_by('-timestamp').first()
-            or Emotion.objects.filter(staff=staff).order_by('-timestamp').first()
+        if filters_applied:
+            emotion_qs = Emotion.objects.filter(staff=staff)
+
+            if status:
+                emotion_qs = emotion_qs.filter(emotion_type=status)
+                if not emotion_qs.exists():
+                    continue
+
+            latest_emotion = emotion_qs.order_by('-timestamp').first()
+        else:
+            latest_emotion = Emotion.objects.filter(
+                staff=staff,
+                timestamp__date=today
+            ).order_by('-timestamp').first()
+
+        latest_productivity = (
+            Productivity.objects.filter(staff=staff)
+            .order_by('-date')
+            .first()
+            if filters_applied else
+            Productivity.objects.filter(staff=staff, date=today).first()
         )
 
-        # Today's productivity or latest
-        productivity_today = Productivity.objects.filter(
-            staff=staff, date=today
-        ).order_by('-date').first()
-
-        latest_prod = productivity_today or (
-            Productivity.objects.filter(staff=staff).order_by('-date').first()
+        latest_feedback = (
+            Feedback.objects.filter(staff=staff)
+            .order_by('-created_at')
+            .first()
+            if filters_applied else
+            Feedback.objects.filter(staff=staff, created_at__date=today)
+            .order_by('-created_at')
+            .first()
         )
 
-        # Latest feedback
-        latest_feedback = Feedback.objects.filter(staff=staff).order_by('-created_at').first()
+        latest_issue = (
+            IssueReport.objects.filter(staff=staff)
+            .order_by('-created_at')
+            .first()
+            if filters_applied else
+            IssueReport.objects.filter(staff=staff, created_at__date=today)
+            .order_by('-created_at')
+            .first()
+        )
 
-        # Latest issue
-        latest_issue = IssueReport.objects.filter(staff=staff).order_by('-created_at').first()
-
-        # Combine into report list
         reports.append({
             'staff': staff,
-            'emotion': latest_emotion,      # can be None
-            'productivity': latest_prod,    # can be None
-            'feedback': latest_feedback,    # can be None
-            'issue': latest_issue,          # can be None
+            'emotion': latest_emotion,
+            'productivity': latest_productivity,
+            'feedback': latest_feedback,
+            'issue': latest_issue,
         })
 
-    # ------------------------------------
+    # -----------------------------
     # CONTEXT
-    # ------------------------------------
+    # -----------------------------
     context = {
-        'emotion_counts': emotion_counts,
         'reports': reports,
         'today': today,
+        'filters_applied': filters_applied,
+        'emotion_counts': emotion_counts,
+        'positive_today_percent': positive_today_percent,
+        'positive_change': positive_change,
+        'responses_today': total_today_responses,
     }
 
     return render(request, 'admin/Emotion Management.html', context)

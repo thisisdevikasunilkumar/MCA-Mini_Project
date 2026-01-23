@@ -305,3 +305,54 @@ tr:hover {
   gap: 10px;
   margin-bottom: 20px;
 }
+
+.filter-bar {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  padding: 15px 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.filter-group input {
+  height: 25px;
+  min-width: 160px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.filter-group select {
+  height: 38px;
+  min-width: 160px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.15);
+}
