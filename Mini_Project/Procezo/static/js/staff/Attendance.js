@@ -13,7 +13,10 @@ document.addEventListener("DOMContentLoaded", function () {
         monthTitle.textContent = `${monthName} ${year}`;
 
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay();
+        let firstDay = new Date(year, month, 1).getDay();
+        
+        // Verify the day (for debugging January 2026)
+        console.log(`Calendar Date: ${monthName} 1, ${year} - Day: ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][firstDay]}`);
 
         calendar.innerHTML = "";
 

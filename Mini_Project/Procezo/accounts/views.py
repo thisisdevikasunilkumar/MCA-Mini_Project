@@ -28,6 +28,7 @@ from django.middleware.csrf import get_token
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Max
 from .models import Staff, Register, Attendance, GoogleMeet, WorkSchedule, Emotion, Feedback, IssueReport, Productivity
+from .models import WORK_STATUS_CHOICES, EVENT_TYPE_CHOICES, REPEAT_CHOICES
 from .forms import StaffRegisterForm
 # Import the utility function
 from .utils_face import pil_from_base64, count_faces, get_embedding_from_pil, save_base64_to_contentfile, cosine_similarity_vec, compare_two_images
@@ -802,9 +803,14 @@ def admin_attendance_management(request):
     # Fetch all attendance records
     attendance = Attendance.objects.select_related("staff").order_by('-date', '-attendance_id')
 
-    today = timezone.now().date()
+    today = today_india()
     week_start = today - timedelta(days=7)
     five_months_ago = today - timedelta(days=150)
+
+    # ATTENDANCE COUNTS FOR TODAY
+    active_count = Attendance.objects.filter(date=today, status='Active').count()
+    inactive_count = Attendance.objects.filter(date=today, status='Inactive').count()
+    late_count = Attendance.objects.filter(date=today, status='Late').count()
 
     # GET values
     status = request.GET.get('status')
@@ -845,14 +851,21 @@ def admin_attendance_management(request):
     # ---------------- ORDERING ----------------
     attendance_list = attendance_list.order_by('-date', '-attendance_id')
 
+    context = {
+            "staff_list": staff_list,
+            "attendance": attendance,
+            "attendance_list": attendance_list,
+            "stats": {
+                "active_today": active_count,
+                "inactive_today": inactive_count,
+                "late_today": late_count,
+            },
+    }
+
     return render(
         request,
         "admin/Attendance Management.html",
-        {
-            "staff_list": staff_list,
-            "attendance": attendance,
-            "attendance_list": attendance_list
-        }
+        context
     )
 
 @csrf_exempt
@@ -993,6 +1006,7 @@ def work_schedules_json(request):
 
 
 # API: Create schedule (The primary fix target)
+@csrf_exempt
 @require_POST
 def work_schedule_create(request):
     try:
@@ -1000,14 +1014,15 @@ def work_schedule_create(request):
     except json.JSONDecodeError:
         # CRITICAL FIX: Always return JSON on error
         return JsonResponse({'success': False, 'error': 'Invalid request data. Expected JSON.'}, status=400)
-    except Exception:
+    except Exception as e:
+        print(f"Request decode error: {e}")
         return JsonResponse({'success': False, 'error': 'Could not read request body.'}, status=400)
 
+    print(f"DEBUG: Received data = {data}")
+    
     title = data.get('title')
     staff_id = data.get('staff')
     date_s = data.get('date')
-    start_s = data.get('start')
-    end_s = data.get('end')
     event_type = data.get('event_type','Office')
     description = data.get('description', '')
     repeat = data.get('repeat','none')
@@ -1016,27 +1031,47 @@ def work_schedule_create(request):
     if not (title and staff_id and date_s):
         return JsonResponse({'success': False, 'error': 'Missing required fields (Title, Staff, Date).'}, status=400)
 
+    print(f"DEBUG: title={title}, staff_id={staff_id}, date_s={date_s}, event_type={event_type}")
+
     try:
         staff = Staff.objects.get(staff_id=staff_id)
     except Staff.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Invalid staff member selected.'}, status=400)
 
     try:
+        # Parse date - handle both YYYY-MM-DD and DD-MM-YYYY formats
         date_obj = parse_date(date_s)
-        start_t = parse_time(start_s) if start_s else dtime.min 
-        end_t = parse_time(end_s) if end_s else None
+        if not date_obj:
+            # Try alternative format DD-MM-YYYY
+            try:
+                date_obj = datetime.strptime(date_s, '%d-%m-%Y').date()
+            except:
+                raise ValueError(f"Invalid date format: {date_s}")
+        
         repeat_until_dt = parse_date(repeat_until) if repeat_until else None
 
-        start_dt = datetime.combine(date_obj, start_t)
-        end_dt = datetime.combine(date_obj, end_t) if date_obj and end_t else None
-    except ValueError:
-        return JsonResponse({'success': False, 'error': 'Invalid Date or Time format. Ensure time is HH:MM.'}, status=400)
+        # Create datetime objects - full day schedule (00:00:00 to 23:59:59)
+        start_dt = datetime.combine(date_obj, dtime.min)
+        end_dt = datetime.combine(date_obj, dtime.max)
+        
+        print(f"DEBUG: Parsed dates - start_dt={start_dt}, end_dt={end_dt}")
+    except ValueError as ve:
+        print(f"DEBUG: Date parse error: {ve}")
+        return JsonResponse({'success': False, 'error': f'Invalid Date or Time format. {str(ve)}'}, status=400)
 
     if has_conflict(staff, start_dt, end_dt):
         return JsonResponse({'success': False, 'error': 'Conflict detected: Staff is already scheduled at this time.'}, status=400)
 
     created = []
     try:
+        print(f"DEBUG: Creating schedule with event_type={event_type}")
+        
+        # Validate event_type
+        valid_event_types = [choice[0] for choice in EVENT_TYPE_CHOICES]
+        if event_type not in valid_event_types:
+            print(f"DEBUG: Invalid event_type. Valid options: {valid_event_types}")
+            event_type = 'Office'  # Default to Office if invalid
+        
         s = WorkSchedule.objects.create(
             title=title,
             staff=staff,
@@ -1045,8 +1080,10 @@ def work_schedule_create(request):
             event_type=event_type,
             description=description,
             repeat=repeat,
-            repeat_until=repeat_until_dt
+            repeat_until=repeat_until_dt,
+            status='Pending'
         )
+        print(f"DEBUG: Schedule created successfully with ID {s.schedule_id}")
         
         # Format the newly created event
         created.append({
@@ -1055,8 +1092,8 @@ def work_schedule_create(request):
             'staff_id': staff.staff_id,
             'staff_name': staff.name,
             'date': s.start_time.strftime('%Y-%m-%d'),
-            'start': s.start_time.strftime('%H:%M'),
-            'end': s.end_time.strftime('%H:%M') if s.end_time else '',
+            'start': '',
+            'end': '',
             'event_type': s.event_type,
             'description': s.description or '',
         })
@@ -1072,8 +1109,8 @@ def work_schedule_create(request):
                 
                 if cur > s.repeat_until: break
 
-                new_start_time = datetime.combine(cur, s.start_time.time())
-                new_end_time = datetime.combine(cur, s.end_time.time()) if s.end_time else None
+                new_start_time = datetime.combine(cur, dtime.min)
+                new_end_time = datetime.combine(cur, dtime.max)
                 
                 ns = WorkSchedule.objects.create(
                     title=s.title, staff=staff, start_time=new_start_time,
@@ -1082,16 +1119,22 @@ def work_schedule_create(request):
                 created.append({
                     'id': ns.schedule_id, 'title': ns.title, 'staff_id': staff.staff_id, 
                     'staff_name': staff.name, 'date': ns.start_time.strftime('%Y-%m-%d'), 
-                    'start': ns.start_time.strftime('%H:%M'),
-                    'end': ns.end_time.strftime('%H:%M') if ns.end_time else '',
+                    'start': '',
+                    'end': '',
                     'event_type': ns.event_type, 'description': ns.description or '',
                 })
 
         return JsonResponse({'success': True, 'created': created})
 
     except Exception as db_e:
+        import traceback
+        error_trace = traceback.format_exc()
         print(f"Database Save Error: {db_e}")
-        return JsonResponse({'success': False, 'error': f'A server error occurred while saving: {db_e}'}, status=500)
+        print(f"Traceback: {error_trace}")
+        return JsonResponse({
+            'success': False, 
+            'error': f'Server error: {str(db_e)}'
+        }, status=500)
 
 
 # API: Update schedule
