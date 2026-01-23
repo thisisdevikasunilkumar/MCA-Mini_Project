@@ -76,21 +76,21 @@
       </tbody>
     </table>
 
-<div class="card-header">
-    <h2>Monthly Attendance Calendar</h2>
-</div>
+    <div class="card-header">
+        <h2>Monthly Attendance Calendar</h2>
+    </div>
 
-<p id="monthTitle"></p>
-<div class="calendar" id="attendanceCalendar"></div>
+    <p id="monthTitle"></p>
+    <div class="calendar" id="attendanceCalendar"></div>
 
-<!-- SAFE attendance JSON (prevents JS errors) -->
-{{ attendance_map|json_script:"attendance_json" }}
+    <!-- SAFE attendance JSON (prevents JS errors) -->
+    {{ attendance_map|json_script:"attendance_json" }}
 
-<script>
-    const attendanceData = JSON.parse(
-        document.getElementById("attendance_json").textContent
-    );
-</script>
+    <script>
+        const attendanceData = JSON.parse(
+            document.getElementById("attendance_json").textContent
+        );
+    </script>
   </div>
 </div>
 

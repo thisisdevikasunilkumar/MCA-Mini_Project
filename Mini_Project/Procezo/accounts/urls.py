@@ -61,7 +61,8 @@ urlpatterns = [
     path('staffDashboard/', views.staff_dashboard, name='staff_dashboard'),
     path('staffProfile/', views.staff_profile, name='staff_profile'),
     path('staffAttendance/', views.staff_attendance, name='staff_attendance'),
-
+    path('staffWorkSchedule/', views.staff_WorkSchedule, name='staff_work_schedule'),
+    path('update-staff-response/', views.update_staff_response, name='update_staff_response'),
     path('staffEmotion/', views.staff_emotion, name='staff_emotion'),
     path('save-reply/', views.save_admin_reply, name='save_admin_reply'),
     path('staff/record-emotion/', views.record_emotion, name='record_emotion'),

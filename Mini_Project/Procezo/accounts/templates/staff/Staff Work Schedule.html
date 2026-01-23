@@ -1,0 +1,142 @@
+{% extends 'staff/Staff Dashboard.html' %}
+{% load static %}
+
+{% block title %}Work Schedule{% endblock %} 
+
+{% block extrastyle %}
+<!-- Dashboard base CSS -->
+<link rel="stylesheet" href="{% static 'css/staff/StaffDashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<!-- Include additional CSS -->
+<link rel="stylesheet" href="{% static 'css/staff/StaffWorkSchedule.css' %}" />
+<div class="main">
+  <div class="container">
+    <h2>Work Schedule</h2>
+    <p>View and manage work schedules and shifts</p>
+
+    <div class="workSchedule-stats-grid">
+      <div class="workSchedule-stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value">{{ stats.meeting_today }}</div>
+        <div class="stat-label">Meetings Today</div>
+      </div>
+
+      <div class="workSchedule-stat-card">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-value">{{ stats.total_hours }}</div>
+        <div class="stat-label">Total Hours</div>
+      </div>
+
+      <div class="workSchedule-stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">{{ stats.tasks_completed }}</div>
+        <div class="stat-label">Tasks Completed</div>
+      </div>
+    </div>
+
+    <div class="card-header">
+      <h2>Today's Schedule</h2>      
+    </div>
+    <div class="schedule-grid">
+      {% if todays_meets %}
+        {% for meet in todays_meets %}
+          <div class="schedule-item">
+            <div class="schedule-time">
+              {{ meet.meet_time|date:"g:i A" }}
+            </div>
+            <div class="schedule-divider"></div>
+            <div class="schedule-details">
+              <h4>{{ meet.meet_title }}</h4>
+              <p>{{ meet.meet_description }}</p>
+              {% if meet.meet_link %}
+                <a href="{{ meet.meet_link }}" class="meet-link" target="_blank">
+                  📹 Join Google Meet
+                </a>
+                {% else %}
+                <span class="no-link">No meeting link</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+      <p style="padding: 15px;">No meetings scheduled for today.</p>
+      {% endif %}
+    </div>
+
+    <div class="card-header">
+      <h2>Tasks and Status Update</h2>
+    </div>
+    <div class="task-list">
+      {% for task in tasks %}
+      <div class="task-item" data-id="{{ task.schedule_id }}">
+        <div class="task-left">
+          <div class="task-content">
+            <h4>{{ task.title }}</h4>
+            <p>{{ task.description }}</p>
+            <span>
+              {{ task.start_time|date:"d-m-Y h:i A" }}
+              to
+              {{ task.end_time|date:"d-m-Y h:i A" }}
+            </span>
+          </div>
+        </div>
+        <div class="status-wrapper" data-current-status="{{ task.staff_response|default:'Pending' }}">
+          <button class="status-btn">
+            {{ task.staff_response|default:'Pending' }} <span class="caret">^</span>
+          </button>
+          <ul class="status-dropdown">
+            <li class="complete" data-value="Complete">Complete</li>
+            <li class="progress" data-value="In Progress">In Progress</li>
+            <li class="pending" data-value="Pending">Pending</li>
+          </ul>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="card-header">
+      <h2>Weekly Overview</h2>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Event Type</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for task in tasks %}
+        <tr>
+          <td>{{ task.title }}</td>
+          <td>{{ task.description|default:"-" }}</td>
+          <td>{{ task.start_time|date:"d-m-Y h:i A" }}</td>
+          <td>{{ task.end_time|date:"d-m-Y h:i A" }}</td>
+          <td>{{ task.event_type }}</td>
+          <td>
+            <span class="status-badge {{ task.status|lower }}">
+              {{ task.staff_response }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center;">No schedules found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="{% static 'js/staff/StaffDashboard.js' %}"></script>
+<script src="{% static 'js/staff/StaffWorkSchedule.js' %}"></script>
+
+{% endblock %}

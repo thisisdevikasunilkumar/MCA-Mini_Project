@@ -1750,6 +1750,64 @@ def staff_attendance(request):
     
     return render(request, 'staff/Attendance.html', context)
 
+# Staff work schedule view
+def staff_WorkSchedule(request):
+    staff_id = request.session.get('staff_id')
+    if not staff_id:
+        return redirect('accounts:login_register')
+    
+    staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    today = today_india()
+    next_week = today + timedelta(days=7)
+
+    # ------------ Today's Meetings (by staff.job_type) ------------
+    todays_meets = GoogleMeet.objects.filter(
+        meet_time__date=today,
+        job_type=staff.job_type
+    ).order_by('meet_time')
+
+    # ✔ Count meetings for this staff
+    todays_meet_count = todays_meets.count()
+
+    # Stats
+    stats = {
+        "meeting_today": todays_meets.count(),
+        "total_hours": 0,
+        "tasks_completed": 0
+    }
+
+    tasks = WorkSchedule.objects.filter(staff=staff).order_by('-start_time')
+
+    context = {
+        'staff': staff,
+        'todays_meets': todays_meets,
+        'todays_meet_count': todays_meet_count,
+        'stats': stats,
+        'tasks': tasks,
+    }
+
+    return render(request, 'staff/Staff Work Schedule.html', context)
+
+@require_POST
+def update_staff_response(request):
+    schedule_id = request.POST.get("schedule_id")
+    response = request.POST.get("response")
+
+    if not schedule_id or not response:
+        return JsonResponse({"success": False})
+    task = get_object_or_404(WorkSchedule, schedule_id=schedule_id)
+
+    staff_id = request.session.get('staff_id')
+    if not staff_id or task.staff.staff_id != staff_id:
+        return JsonResponse({"success": False})
+
+    task.staff_response = response
+    task.save(update_fields=["staff_response", "updated_at"])
+
+    return JsonResponse({"success": True})
+
+# Staff emotion view
 def staff_emotion(request):
     # 1) Logged-in staff
     staff_id = request.session.get('staff_id')
@@ -1816,10 +1874,6 @@ def save_admin_reply(request):
 
 @require_POST
 def record_emotion(request):
-    """
-    Frontend-ൽ നിന്ന് ലഭിക്കുന്ന ക്യാമറ ഫ്രെയിമിൽ Emotion Detection നടത്തി ഡാറ്റാബേസിൽ സേവ് ചെയ്യുന്നു.
-    ഇവിടെ 'Neutral' വികാരവും സേവ് ചെയ്യപ്പെടുന്നു.
-    """
     staff_id = request.session.get('staff_id')
     
     try:
@@ -1843,7 +1897,6 @@ def record_emotion(request):
 
     print(f"record_emotion called: staff_id={staff_id} detected_emotion={detected_emotion}")
 
-    # *** പ്രധാന മാറ്റം: None അല്ലെങ്കിൽ സേവ് ചെയ്യുക (Neutral ഉൾപ്പെടെ) ***
     if detected_emotion: 
         try:
             if not staff_id:
