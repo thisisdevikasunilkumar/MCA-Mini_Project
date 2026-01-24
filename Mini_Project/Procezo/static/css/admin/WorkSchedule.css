@@ -228,12 +228,49 @@
 
 /* --- Grid Definition (Injected by JS) --- */
 
-/* This class defines the main structure for the Week View */
+/* --- Week View: 8 Columns (Staff + 7 Days) --- */
 .schedule-grid {
     display: grid;
-    /* Grid: 1 column for staff + 7 columns for days */
     grid-template-columns: 200px repeat(7, 1fr); 
-    min-width: 1000px; /* Ensure content doesn't shrink too much */
+    min-width: 1000px;
+}
+
+/* --- Month View: Exactly 7 Columns (Sun to Sat) --- */
+.month-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    min-width: 1000px;
+}
+
+.month-cell {
+    min-height: 110px;
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.day-number {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: var(--text-color-dark);
+}
+
+.outside-month {
+    background-color: #f9f9f9;
+    opacity: 0.6;
+}
+
+.event-block {
+    font-size: 11px;
+    padding: 3px 6px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* --- Headers (Top Row) --- */

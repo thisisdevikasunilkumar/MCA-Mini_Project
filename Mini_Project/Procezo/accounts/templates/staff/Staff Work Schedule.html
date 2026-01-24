@@ -71,31 +71,39 @@
     <div class="task-list">
       {% for task in tasks %}
       <div class="task-item" data-id="{{ task.schedule_id }}">
+
         <div class="task-left">
           <div class="task-content">
             <h4>{{ task.title }}</h4>
             <p>{{ task.description }}</p>
-            <span>
+            <span class="task-date">
               {{ task.start_time|date:"d-m-Y h:i A" }}
-              to
+              <span class="to-text">to</span>
               {{ task.end_time|date:"d-m-Y h:i A" }}
             </span>
           </div>
         </div>
-        <div class="status-wrapper" data-current-status="{{ task.staff_response|default:'Pending' }}">
+        <div class="status-wrapper"
+            data-current-status="{{ task.staff_response|default:'Status' }}"
+            data-update-url="{% url 'accounts:update_staff_response' %}">
           <button class="status-btn">
-            {{ task.staff_response|default:'Pending' }} <span class="caret">^</span>
+            <span class="status-text">
+              {{ task.staff_response|default:'Status' }}
+            </span>
+            <span class="caret">^</span>
           </button>
+
           <ul class="status-dropdown">
             <li class="complete" data-value="Complete">Complete</li>
             <li class="progress" data-value="In Progress">In Progress</li>
             <li class="pending" data-value="Pending">Pending</li>
           </ul>
-        </div>
 
+        </div>
       </div>
       {% endfor %}
     </div>
+
 
     <div class="card-header">
       <h2>Weekly Overview</h2>
@@ -121,8 +129,8 @@
           <td>{{ task.end_time|date:"d-m-Y h:i A" }}</td>
           <td>{{ task.event_type }}</td>
           <td>
-            <span class="status-badge {{ task.status|lower }}">
-              {{ task.staff_response }}
+            <span class="status-badge {{ task.staff_response|default:'Status Not Updated'|slugify }}">
+              {{ task.staff_response|default:'Status Not Updated' }}
             </span>
           </td>
         </tr>

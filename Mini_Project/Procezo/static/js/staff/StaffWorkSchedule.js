@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-
-  // Close all dropdowns
+  
   function closeAllDropdowns() {
     document.querySelectorAll(".status-wrapper").forEach(w => {
       w.classList.remove("active");
@@ -8,7 +7,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   document.querySelectorAll(".status-wrapper").forEach(wrapper => {
-
     const button = wrapper.querySelector(".status-btn");
     const dropdown = wrapper.querySelector(".status-dropdown");
     const items = dropdown.querySelectorAll("li");
@@ -16,33 +14,30 @@ document.addEventListener("DOMContentLoaded", function () {
     const taskItem = wrapper.closest(".task-item");
     const scheduleId = taskItem.dataset.id;
 
-    // =============================
-    // Toggle Dropdown
-    // =============================
+    // Toggle Dropdown logic modified
     button.addEventListener("click", function (e) {
       e.stopPropagation();
-      closeAllDropdowns();
-      wrapper.classList.toggle("active");
+      const isActive = wrapper.classList.contains("active");
+      closeAllDropdowns(); // മറ്റുള്ളവ ക്ലോസ് ചെയ്യുക
+      if (!isActive) {
+        wrapper.classList.add("active"); // നിലവിലുള്ളത് ഓപ്പൺ ചെയ്യുക
+      }
     });
 
-    // =============================
-    // Select Status
-    // =============================
     items.forEach(item => {
       item.addEventListener("click", function () {
-
         const newStatus = item.dataset.value;
         const oldStatus = wrapper.dataset.currentStatus || "Pending";
+        const statusText = button.querySelector(".status-text");
 
-        // Update UI instantly
-        button.childNodes[0].nodeValue = newStatus + " ";
+        // UI Update
+        statusText.textContent = newStatus;
         wrapper.dataset.currentStatus = newStatus;
         wrapper.classList.remove("active");
 
-        // =============================
         // AJAX POST
-        // =============================
-        fetch("/update-staff-response/", {
+        // ശ്രദ്ധിക്കുക: URL നിങ്ങളുടെ urls.py-ൽ ഉള്ളതുപോലെ തന്നെ നൽകുക
+        fetch("/accounts/update-staff-response/", {
           method: "POST",
           headers: {
             "X-CSRFToken": getCookie("csrftoken"),
@@ -50,48 +45,31 @@ document.addEventListener("DOMContentLoaded", function () {
           },
           body: `schedule_id=${scheduleId}&response=${encodeURIComponent(newStatus)}`
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
           if (!data.success) {
-            // Revert on failure
-            button.childNodes[0].nodeValue = oldStatus + " ";
-            wrapper.dataset.currentStatus = oldStatus;
-            alert("Status update failed");
+            revertStatus(statusText, wrapper, oldStatus);
+            alert("Error: " + data.error);
           }
         })
         .catch(error => {
-          console.error(error);
-          button.childNodes[0].nodeValue = oldStatus + " ";
-          wrapper.dataset.currentStatus = oldStatus;
-          alert("Server error");
+          console.error("Fetch Error:", error);
+          revertStatus(statusText, wrapper, oldStatus);
+          alert("Server error. Please try again.");
         });
-
       });
     });
-
   });
 
-  // Close dropdown when clicking outside
-  document.addEventListener("click", closeAllDropdowns);
-
-});
-
-// =============================
-// CSRF TOKEN HELPER
-// =============================
-function getCookie(name) {
-  let cookieValue = null;
-
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
+  function revertStatus(textElem, wrapElem, oldVal) {
+    textElem.textContent = oldVal;
+    wrapElem.dataset.currentStatus = oldVal;
   }
-  return cookieValue;
-}
+
+  document.addEventListener("click", closeAllDropdowns);
+});

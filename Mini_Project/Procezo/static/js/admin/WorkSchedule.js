@@ -1,9 +1,3 @@
-/**
- * WorkSchedule.js - Core Logic for Work Schedule Grid and CRUD Operations
- *
- * This refactored script consolidates logic, fixes bugs, and adds staff-specific filtering.
- */
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- Global State & Configuration ---
     const API = window.API || {};
@@ -11,15 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const INITIAL_EVENTS = window.INIT_EVENTS || [];
 
     let currentDate = new Date();
-    let currentView = 'week';
-    let currentJobFilter = 'ALL'; // From tabs like 'HR'
-    let currentStaffIdFilter = 'ALL'; // From dropdown
+    let currentView = 'week'; 
+    let currentJobFilter = 'ALL';
+    let currentStaffIdFilter = 'ALL';
 
     // --- DOM Elements ---
     const calendarGridContainer = document.getElementById('calendar');
     const rangeLabel = document.getElementById('rangeLabel');
-
-    // Controls
     const viewToggleGroup = document.getElementById('viewToggleGroup');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -43,10 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalDescription = document.getElementById('modalDescription');
     const modalEventType = document.getElementById('modalEventType');
     const modalDate = document.getElementById('modalDate');
-    const modalStartTime = document.getElementById('modalStartTime');
-    const modalEndTime = document.getElementById('modalEndTime');
 
-    // --- Data Initialization ---
+    // --- Data Pre-processing ---
     function normalizeJobType(raw) {
         if (!raw) return '';
         const t = raw.trim().toLowerCase();
@@ -73,74 +63,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     INITIAL_EVENTS.forEach(ev => {
         const staffId = ev.staff || ev.staff_id;
-        ev.staff_id = staffId; // normalize
+        ev.staff_id = staffId; 
         ev.job_type = normalizeJobType(staffJobTypeMap[staffId] || '');
     });
 
-    // --- UTILITY FUNCTIONS ---
+    // --- Helper Functions ---
     function formatDateToISO(date) {
-        // Format date as YYYY-MM-DD using local timezone (not UTC)
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        let d = new Date(date);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
 
     function getWeekRange(date) {
-        let startOfWeek = new Date(date);
-        startOfWeek.setHours(0, 0, 0, 0);
-
-        // Loop backwards to find Monday (getDay() === 1)
-        for (let i = 0; i < 7; i++) {
-            if (startOfWeek.getDay() === 1) {
-                break;
-            }
-            startOfWeek.setDate(startOfWeek.getDate() - 1);
-        }
-
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
-        return { start: startOfWeek, end: endOfWeek };
-    }
-
-    function formatDateRangeLabel(start, end) {
-        const startMonth = start.toLocaleString('default', { month: 'short' });
-        const endMonth = end.toLocaleString('default', { month: 'short' });
-
-        if (startMonth === endMonth) {
-            return `${start.toLocaleString('default', { weekday: 'short' })}, ${startMonth} ${start.getDate()} - ${end.toLocaleString('default', { weekday: 'short' })}, ${end.getDate()}, ${start.getFullYear()}`;
-        }
-        return `${start.toLocaleString('default', { weekday: 'short' })}, ${startMonth} ${start.getDate()} - ${end.toLocaleString('default', { weekday: 'short' })}, ${endMonth} ${end.getDate()}, ${start.getFullYear()}`;
+        let start = new Date(date);
+        start.setDate(date.getDate() - date.getDay()); // Sunday logic
+        start.setHours(0,0,0,0);
+        let end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        return { start, end };
     }
 
     function getMonthStartAndEnd(date) {
         const year = date.getFullYear();
         const month = date.getMonth();
-        
-        // Start with the first day of the month
-        let startDay = new Date(year, month, 1);
-
-        // Loop backwards until we find a Monday (getDay() === 1)
-        for (let i = 0; i < 7; i++) {
-            if (startDay.getDay() === 1) {
-                break; // Found Monday
-            }
-            startDay.setDate(startDay.getDate() - 1);
-        }
-        
-        startDay.setHours(0, 0, 0, 0);
-
-        // Create a 6-week (42 days) grid for a consistent layout
-        const endDay = new Date(startDay);
-        endDay.setDate(startDay.getDate() + 41);
-        endDay.setHours(23, 59, 59, 999);
-
+        let firstDay = new Date(year, month, 1);
+        let startDay = new Date(firstDay);
+        startDay.setDate(firstDay.getDate() - firstDay.getDay()); // Sunday logic
+        let endDay = new Date(startDay);
+        endDay.setDate(startDay.getDate() + 41); 
         return { start: startDay, end: endDay, month: month };
     }
 
-
-    // --- MODAL FUNCTIONS ---
+    // --- Modal Logic ---
     function showModal() {
         scheduleModal.classList.add('show');
         scheduleModal.setAttribute('aria-hidden', 'false');
@@ -160,70 +113,120 @@ document.addEventListener('DOMContentLoaded', () => {
         hideModal();
         modalTitle.textContent = 'Create a schedule';
         modalAction.value = 'create';
-        
-        // Auto-fill with provided date or today's date
-        if (date) {
-            modalDate.value = date;
-        } else {
-            const today = new Date();
-            modalDate.value = formatDateToISO(today);
-        }
-        
-        if (staffId) {
-            modalStaffSelect.value = staffId;
-        } else {
-            modalStaffSelect.selectedIndex = 0;
-        }
+        modalDate.value = date || formatDateToISO(new Date());
+        if (staffId) modalStaffSelect.value = staffId;
         showModal();
     }
 
     function openModalForEdit(eventId) {
         hideModal();
         const event = INITIAL_EVENTS.find(e => String(e.id) === String(eventId));
-        if (!event) {
-            console.error('Event not found:', eventId);
-            alert('Error: Could not find event to edit');
-            return;
-        }
-
-        console.log('Editing event:', event);
+        if (!event) return;
 
         modalTitle.textContent = 'Edit Schedule';
         modalAction.value = 'update';
         modalScheduleId.value = event.id;
         deleteScheduleBtn.style.display = 'inline-block';
 
-        // Populate form fields
         modalTitleInput.value = event.title || '';
         modalDescription.value = event.description || '';
-        modalStaffSelect.value = event.staff_id || event.staff || '';
+        modalStaffSelect.value = event.staff_id || '';
         modalEventType.value = event.event_type || 'Office';
         modalDate.value = event.date || '';
-        
-        // Handle repeat field if it exists
-        const modalRepeat = document.getElementById('modalRepeat');
-        if (modalRepeat) {
-            modalRepeat.value = event.repeat || 'none';
-        }
-
         showModal();
     }
 
+    // --- Rendering Logic ---
+    function renderWeekView() {
+        const { start, end } = getWeekRange(currentDate);
+        rangeLabel.textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
 
-    // --- API Communication ---
+        const staffToRender = allStaff.filter(s => {
+            const jobMatch = currentJobFilter === 'ALL' || s.job_type === currentJobFilter;
+            const staffMatch = currentStaffIdFilter === 'ALL' || String(s.id) === currentStaffIdFilter;
+            return jobMatch && staffMatch;
+        });
+
+        let html = '<div class="schedule-grid">';
+        const days = ['Sun','Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        html += `<div class="grid-header-cell">Staff Members</div>`;
+        days.forEach((name, i) => {
+            let d = new Date(start);
+            d.setDate(start.getDate() + i);
+            html += `<div class="grid-header-cell">${name}<br>${d.getDate()}</div>`;
+        });
+
+        staffToRender.forEach(staff => {
+            html += `<div class="grid-staff-cell">
+                <div class="staff-info-box">
+                    <div class="staff-name-tag">${staff.name}</div>
+                    <div class="staff-time-info">${staff.total_time}</div>
+                </div>
+            </div>`;
+
+            for (let i = 0; i < 7; i++) {
+                let d = new Date(start);
+                d.setDate(start.getDate() + i);
+                const key = formatDateToISO(d);
+                const dayEvents = INITIAL_EVENTS.filter(e => e.date === key && String(e.staff_id) === String(staff.id));
+                
+                let evHtml = dayEvents.map(e => {
+                    const cls = `event-${(e.event_type || 'other').toLowerCase().replace(/\s+/g, '-')}`;
+                    return `<div class="event-block ${cls}" data-event-id="${e.id}">${e.title}</div>`;
+                }).join('');
+
+                html += `<div class="grid-event-cell" data-date="${key}" data-staff="${staff.id}">${evHtml}</div>`;
+            }
+        });
+        html += '</div>';
+        calendarGridContainer.innerHTML = html;
+        attachCellListeners();
+    }
+
+    function renderMonthView() {
+        const { start, month } = getMonthStartAndEnd(currentDate);
+        rangeLabel.textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        let html = '<div class="month-grid-layout">';
+        ['Sun','Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+            html += `<div class="grid-header-cell">${day}</div>`;
+        });
+
+        let d = new Date(start);
+        for (let i = 0; i < 42; i++) {
+            const key = formatDateToISO(d);
+            const isOutside = d.getMonth() !== month;
+            const dayEvents = INITIAL_EVENTS.filter(e => e.date === key && 
+                (currentStaffIdFilter === 'ALL' || String(e.staff_id) === currentStaffIdFilter));
+
+            let evHtml = dayEvents.map(e => {
+                const cls = `event-${(e.event_type || 'other').toLowerCase().replace(/\s+/g, '-')}`;
+                return `<div class="event-block ${cls}" data-event-id="${e.id}">${e.title}</div>`;
+            }).join('');
+
+            html += `<div class="grid-event-cell month-cell ${isOutside ? 'outside-month' : ''}" data-date="${key}">
+                <div class="day-number">${d.getDate()}</div>
+                <div class="event-container">${evHtml}</div>
+            </div>`;
+            d.setDate(d.getDate() + 1);
+        }
+        html += '</div>';
+        calendarGridContainer.innerHTML = html;
+        attachCellListeners();
+    }
+
+    function renderCalendar() {
+        if (currentView === 'week') renderWeekView();
+        else renderMonthView();
+    }
+
+    // --- API Interactions ---
     async function submitSchedule(e) {
         e.preventDefault();
         const formData = new FormData(scheduleForm);
         const data = Object.fromEntries(formData.entries());
-        const action = data.action;
-        const scheduleId = data.schedule_id;
-
-        console.log('Schedule data being sent:', data);
-
-        let url = API.create;
-        if (action === 'update' && scheduleId) {
-            url = API.update.replace('__ID__', scheduleId);
-        }
+        let url = data.action === 'update' ? API.update.replace('__ID__', data.schedule_id) : API.create;
 
         try {
             const response = await fetch(url, {
@@ -231,244 +234,90 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
                 body: JSON.stringify(data),
             });
-
-            console.log('Response status:', response.status);
             const result = await response.json();
-            console.log('Server response:', result);
-
-            if (result.success) {
-                // Show success message
-                alert(`✓ Schedule "${data.title}" created successfully for ${data.staff}!`);
-                // Reload to reflect changes
-                location.reload();
-            } else {
-                alert("Failed: " + (result.error || "Unknown error"));
-            }
+            if (result.success) location.reload();
+            else alert("Error: " + (result.error || "Unknown error"));
         } catch (err) {
-            console.error('Schedule submission error:', err);
-            alert("Error: Could not save schedule. " + err.message);
+            alert("Submission failed: " + err.message);
         }
     }
 
     async function deleteSchedule() {
         const scheduleId = modalScheduleId.value;
-        if (!scheduleId || !confirm("Are you sure you want to delete this schedule?")) return;
-
-        const url = API.delete.replace('__ID__', scheduleId);
-
+        if (!scheduleId || !confirm("Are you sure?")) return;
         try {
-            const response = await fetch(url, {
+            const response = await fetch(API.delete.replace('__ID__', scheduleId), {
                 method: 'POST',
                 headers: { 'X-CSRFToken': CSRF_TOKEN, "Content-Type": "application/json" },
             });
-            if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
-
             const result = await response.json();
-            if (result.success) {
-                location.reload(); // Easiest way to reflect change
-            } else {
-                 alert("Failed to delete: " + (result.error || "Unknown error"));
-            }
+            if (result.success) location.reload();
         } catch (error) {
-            console.error('Failed to delete schedule:', error);
-            alert(`Error: Could not delete schedule. ${error.message}`);
+            alert("Delete failed.");
         }
     }
 
-
-    // --- RENDERING ---
-    function renderWeekView() {
-        const { start, end } = getWeekRange(currentDate);
-        rangeLabel.textContent = formatDateRangeLabel(start, end);
-
-        // Filter staff based on both job tab and staff dropdown
-        const staffToRender = allStaff.filter(staff => {
-            const jobMatch = currentJobFilter === 'ALL' || staff.job_type === currentJobFilter;
-            const staffMatch = currentStaffIdFilter === 'ALL' || String(staff.id) === currentStaffIdFilter;
-            return jobMatch && staffMatch;
-        });
-
-        let html = '<div class="schedule-grid">';
-
-        // Render day headers
-        const dayNames = ['Sun','Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        html += `<div class="grid-staff-cell header"></div>`; // Placeholder for staff column header
-        dayNames.forEach((name, i) => {
-            const day = new Date(start);
-            day.setDate(start.getDate() + i);
-            html += `<div class="grid-header-cell">${name}<br>${day.getDate()}</div>`;
-        });
-
-        // Render staff rows and event cells
-        staffToRender.forEach(staff => {
-            html += `<div class="grid-staff-cell" data-staff-id="${staff.id}">
-                        <div class="staff-info-box">
-                            <div class="staff-name-tag">${staff.name}</div>
-                            <div class="staff-time-info">${staff.total_time}</div>
-                        </div>
-                    </div>`;
-
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(start);
-                date.setDate(start.getDate() + i);
-                const dayKey = formatDateToISO(date);
-
-                const eventsOnDay = INITIAL_EVENTS.filter(e => e.date === dayKey && String(e.staff_id) === String(staff.id));
-                let eventsHtml = eventsOnDay.map(event => {
-                    const eventClass = `event-${(event.event_type || 'other').toLowerCase().replace(/\s+/g, '-')}`;
-                    return `<div class="event-block ${eventClass}" data-event-id="${event.id}" title="${event.title}">${event.title}</div>`;
-                }).join('');
-
-                html += `<div class="grid-event-cell" data-date="${dayKey}" data-staff="${staff.id}">${eventsHtml}</div>`;
-            }
-        });
-
-        html += '</div>';
-        calendarGridContainer.innerHTML = html;
-        attachCellEventListeners();
-    }
-
-    function renderMonthView() {
-        const { start: startDate, end: endDate, month: currentMonth } = getMonthStartAndEnd(currentDate);
-        rangeLabel.textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-        let html = '<div class="schedule-grid month-grid-layout">';
-        const dayNames = ['Sun','Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        dayNames.forEach(name => {
-            html += `<div class="grid-header-cell month-day-name">${name}</div>`;
-        });
-
-        // Filter events based on dropdown
-        const filteredEvents = INITIAL_EVENTS.filter(event =>
-            currentStaffIdFilter === 'ALL' || String(event.staff_id) === currentStaffIdFilter
-        );
-
-        let day = new Date(startDate);
-        while (day <= endDate) {
-            const dayKey = formatDateToISO(day);
-            const isOutsideMonth = day.getMonth() !== currentMonth;
-            const classes = isOutsideMonth ? 'outside-month' : '';
-
-            const eventsOnDay = filteredEvents.filter(e => e.date === dayKey);
-            let eventsHtml = eventsOnDay.map(event => {
-                const eventClass = `event-${(event.event_type || 'other').toLowerCase().replace(/\s+/g, '-')}`;
-                return `<div class="month-event-bubble ${eventClass}" data-event-id="${event.id}" title="${event.title}">${event.title}</div>`;
-            }).join('');
-
-            html += `<div class="month-cell grid-event-cell ${classes}" data-date="${dayKey}">
-                        <div class="day-number">${day.getDate()}</div>
-                        <div class="month-events-container">${eventsHtml}</div>
-                    </div>`;
-            day.setDate(day.getDate() + 1);
-        }
-
-        html += '</div>';
-        calendarGridContainer.innerHTML = html;
-        attachCellEventListeners();
-    }
-
-    function renderCalendar() {
-        if (currentView === 'week') {
-            renderWeekView();
-        } else {
-            renderMonthView();
-        }
-    }
-
-
-    // --- EVENT HANDLERS ---
-    function attachCellEventListeners() {
+    // --- Event Handlers ---
+    function attachCellListeners() {
         // Edit event
-        document.querySelectorAll('.event-block, .month-event-bubble').forEach(block => {
-            block.addEventListener('click', (e) => {
+        document.querySelectorAll('.event-block').forEach(block => {
+            block.onclick = (e) => {
                 e.stopPropagation();
                 openModalForEdit(e.target.dataset.eventId);
-            });
+            };
         });
 
         // Add event
         document.querySelectorAll('.grid-event-cell').forEach(cell => {
-            const hasEvents = cell.querySelector('.event-block, .month-event-bubble');
-            if (!hasEvents || currentView === 'month') {
-                cell.addEventListener('click', () => {
-                    const staffId = cell.dataset.staff; // Might be undefined in month view
-                    const date = cell.dataset.date;
-                    if (date) {
-                        openModalForAdd(date, staffId);
-                    }
-                });
-            }
+            cell.onclick = () => openModalForAdd(cell.dataset.date, cell.dataset.staff);
         });
     }
 
-    function handleNavigation(direction) {
-        if (currentView === 'week') {
-            currentDate.setDate(currentDate.getDate() + (direction * 7));
-        } else {
-            currentDate.setMonth(currentDate.getMonth() + direction);
-        }
+    // --- Initialize Listeners ---
+    prevBtn.onclick = () => {
+        if (currentView === 'week') currentDate.setDate(currentDate.getDate() - 7);
+        else currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
-    }
+    };
 
-    function handleViewToggle(e) {
-        const button = e.target.closest('.btn-view');
-        if (!button) return;
-
-        currentView = button.dataset.view;
-        document.querySelectorAll('.btn-view').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-        
-        currentDate = new Date(); // Reset to today when toggling view
+    nextBtn.onclick = () => {
+        if (currentView === 'week') currentDate.setDate(currentDate.getDate() + 7);
+        else currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
-    }
+    };
 
-    function handleJobTabClick(e) {
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.onclick = (e) => {
+            document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentView = e.target.dataset.view;
+            renderCalendar();
+        };
+    });
+
+    teamTabsContainer.addEventListener('click', (e) => {
         const button = e.target.closest('.tab-button');
         if (!button) return;
-
         currentJobFilter = button.dataset.job || 'ALL';
         teamTabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-
-        // When a job tab is clicked, reset the staff dropdown to "All"
         staffFilterSelect.value = 'ALL';
         currentStaffIdFilter = 'ALL';
-
         renderCalendar();
-    }
+    });
 
-    function handleStaffFilterChange(e) {
+    staffFilterSelect.addEventListener('change', (e) => {
         currentStaffIdFilter = e.target.value;
-
-        // When a specific staff is selected, deactivate job tabs
-        teamTabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-        // And set the job filter to ALL to not conflict
         currentJobFilter = 'ALL';
-
+        teamTabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
         renderCalendar();
-    }
+    });
 
-    // --- INITIALIZATION ---
-    function init() {
-        // Attach main listeners
-        prevBtn.addEventListener('click', () => handleNavigation(-1));
-        nextBtn.addEventListener('click', () => handleNavigation(1));
-        viewToggleGroup.addEventListener('click', handleViewToggle);
-        teamTabsContainer.addEventListener('click', handleJobTabClick);
-        staffFilterSelect.addEventListener('change', handleStaffFilterChange);
+    closeModalBtn.onclick = hideModal;
+    cancelModalBtn.onclick = hideModal;
+    scheduleForm.onsubmit = submitSchedule;
+    deleteScheduleBtn.onclick = deleteSchedule;
+    openAddBtn.onclick = () => openModalForAdd(formatDateToISO(new Date()), null);
 
-        // Modal Listeners
-        openAddBtn.addEventListener('click', () => openModalForAdd(new Date().toISOString().split('T')[0], null));
-        closeModalBtn.addEventListener('click', hideModal);
-        cancelModalBtn.addEventListener('click', hideModal);
-
-        // Form Submission
-        scheduleForm.addEventListener('submit', submitSchedule);
-        deleteScheduleBtn.addEventListener('click', deleteSchedule);
-
-        // Initial Render
-        renderCalendar();
-    }
-
-    init();
+    renderCalendar();
 });
