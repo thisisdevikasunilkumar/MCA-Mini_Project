@@ -286,7 +286,7 @@
 .clear-btn {
     display: inline-block;
     padding: 8px 16px;
-    background-color: #f44336; /* Red color */
+    background-color: #f44336;
     color: white !important;
     text-decoration: none;
     border-radius: 4px;
@@ -299,23 +299,23 @@
 }
 
 .clear-btn:hover {
-    background-color: #d32f2f; /* Darker red on hover */
+    background-color: #d32f2f;
     text-decoration: none;
 }
 
 .clear-btn:active {
-    transform: scale(0.98); /* Click effect */
+    transform: scale(0.98);
 }
 
 /* Filter bar alignment fix */
 .filter-bar {
     display: flex;
-    align-items: flex-end; /* Labels-nu thazhe button align cheyyan */
+    align-items: flex-end;
     gap: 15px;
     flex-wrap: wrap;
     margin-bottom: 20px;
 }
 
 .action-group {
-    margin-bottom: 5px; /* Alignment adjustment */
+    margin-bottom: 5px;
 }
