@@ -113,13 +113,13 @@
       <div class="stats-grid">
         <div class="stat-card" id="statCard1">
           <div class="stat-icon" id="statIcon1">✅</div>
-          <div class="stat-value" id="statValue1">12</div>
+          <div class="stat-value" id="statValue1">{{ stats.tasks_completed }}</div>
           <div class="stat-label" id="statLabel1">Tasks Completed</div>
         </div>
 
         <div class="stat-card" id="statCard2">
           <div class="stat-icon" id="statIcon2">⏰</div>
-          <div class="stat-value" id="statValue2">5</div>
+          <div class="stat-value" id="statValue2">{{ stats.tasks_pending }}</div>
           <div class="stat-label" id="statLabel2">Pending Tasks</div>
         </div>
 
@@ -138,109 +138,104 @@
 
       <!-- ====== Content 2 Column Layout ====== -->
       <div class="content-grid">
-        <!-- Tasks Card -->
         <div class="content-grid-card" id="tasksCard">
           <div class="card-header">
             <h2 id="tasksTitle">Today's Tasks</h2>
-            <button class="view-all" id="viewAllTasks">View All</button>
+            <button class="view-all" id="viewAllTasks">
+                <a href="{% url 'accounts:staff_work_schedule' %}">View All</a>
+            </button>
           </div>
 
-          <div class="task-item" id="task1">
-            <div class="task-checkbox" id="checkbox1"></div>
-            <div class="task-content">
-              <div class="task-title">Review quarterly reports</div>
-              <div class="task-time">Due: 2:00 PM</div>
+          <div class="tasks-container">
+            {% for task in tasks %}
+            <div class="task-item">
+              <div class="task-checkbox" data-id="{{ task.schedule_id }}"></div>
+              <div class="task-content">
+                <div class="task-title">{{ task.description }}</div>
+                <div class="task-time">Due: {{ task.start_time|date:"h:i A" }}</div>
+              </div>
             </div>
-          </div>
-
-          <div class="task-item" id="task2">
-            <div class="task-checkbox" id="checkbox2"></div>
-            <div class="task-content">
-              <div class="task-title">Team meeting preparation</div>
-              <div class="task-time">Due: 3:30 PM</div>
+            {% empty %}
+            <div class="task-item">
+              <div class="task-content">
+                <div class="task-title" style="color: gray;">No tasks assigned for today.</div>
+              </div>
             </div>
-          </div>
-
-          <div class="task-item" id="task3">
-            <div class="task-checkbox" id="checkbox3"></div>
-            <div class="task-content">
-              <div class="task-title">Update project timeline</div>
-              <div class="task-time">Due: 5:00 PM</div>
-            </div>
+            {% endfor %}
           </div>
         </div>
 
         <!-- Announcements Card -->
-      <div class="content-grid-card" id="announcementsCard">
-        <div class="card-header">
-            <h2 id="announcementsTitle">🎂 Upcoming Birthdays</h2>
-        </div>
-
-        <div class="birthday-list">
-            {% for b in upcoming_birthdays %}
-            <div class="birthday-item">
-                <div class="birthday-avatar">
-                    {{ b.name|slice:":1" }}{{ b.name|slice:"1:2" }}
-                </div>
-
-                <div class="birthday-info">
-                    <p class="birthday-name">{{ b.name }}</p>
-
-                    {% if b.dob.month == today.month and b.dob.day == today.day %}
-                        <p class="birthday-date">Today - {{ b.dob|date:"M d" }}</p>
-                    {% elif b.dob.month == tomorrow.month and b.dob.day == tomorrow.day %}
-                        <p class="birthday-date">Tomorrow - {{ b.dob|date:"M d" }}</p>
-                    {% else %}
-                        <p class="birthday-date">{{ b.dob|date:"M d" }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="birthday-icon">🎉</div>
-            </div>
-            {% empty %}
-            <p style="padding: 20px;">No upcoming birthdays 🎈</p>
-            {% endfor %}
-        </div>
-      </div>
-
-      <!-- ====== Schedule ====== -->
-      <div class="schedule-card">
-          <div class="schedule-header">
-              <h2>Today's Schedule</h2>
-              <a href="https://calendar.google.com" target="_blank" class="view-btn">
-                  View Calendar
-              </a>
+        <div class="content-grid-card" id="announcementsCard">
+          <div class="card-header">
+              <h2 id="announcementsTitle">🎂 Upcoming Birthdays</h2>
           </div>
 
-          <div class="schedule-grid">
-              {% if todays_meets %}
-                  {% for meet in todays_meets %}
-                  <div class="schedule-item">
-                      <div class="schedule-time">
-                          {{ meet.meet_time|date:"g:i A" }}
-                      </div>
-                      <div class="schedule-divider"></div>
-                      <div class="schedule-details">
-                          <h4>{{ meet.meet_title }}</h4>
-                          <p>{{ meet.meet_description }}</p>
-                          {% if meet.meet_link %}
-                              <a href="{{ meet.meet_link }}" class="meet-link" target="_blank">
-                                  📹 Join Google Meet
-                              </a>
-                          {% else %}
-                              <span class="no-link">No meeting link</span>
-                          {% endif %}
-                      </div>
+          <div class="birthday-list">
+              {% for b in upcoming_birthdays %}
+              <div class="birthday-item">
+                  <div class="birthday-avatar">
+                      {{ b.name|slice:":1" }}{{ b.name|slice:"1:2" }}
                   </div>
-                  {% endfor %}
-              {% else %}
-                  <p style="padding: 15px;">No meetings scheduled for today.</p>
-              {% endif %}
+
+                  <div class="birthday-info">
+                      <p class="birthday-name">{{ b.name }}</p>
+
+                      {% if b.dob.month == today.month and b.dob.day == today.day %}
+                          <p class="birthday-date">Today - {{ b.dob|date:"M d" }}</p>
+                      {% elif b.dob.month == tomorrow.month and b.dob.day == tomorrow.day %}
+                          <p class="birthday-date">Tomorrow - {{ b.dob|date:"M d" }}</p>
+                      {% else %}
+                          <p class="birthday-date">{{ b.dob|date:"M d" }}</p>
+                      {% endif %}
+                  </div>
+
+                  <div class="birthday-icon">🎉</div>
+              </div>
+              {% empty %}
+              <p style="padding: 20px;">No upcoming birthdays 🎈</p>
+              {% endfor %}
           </div>
+        </div>
+
+        <!-- ====== Schedule ====== -->
+        <div class="schedule-card">
+            <div class="schedule-header">
+                <h2>Today's Schedule</h2>
+                <a href="https://calendar.google.com" target="_blank" class="view-btn">
+                    View Calendar
+                </a>
+            </div>
+
+            <div class="schedule-grid">
+                {% if todays_meets %}
+                    {% for meet in todays_meets %}
+                    <div class="schedule-item">
+                        <div class="schedule-time">
+                            {{ meet.meet_time|date:"g:i A" }}
+                        </div>
+                        <div class="schedule-divider"></div>
+                        <div class="schedule-details">
+                            <h4>{{ meet.meet_title }}</h4>
+                            <p>{{ meet.meet_description }}</p>
+                            {% if meet.meet_link %}
+                                <a href="{{ meet.meet_link }}" class="meet-link" target="_blank">
+                                    📹 Join Google Meet
+                                </a>
+                            {% else %}
+                                <span class="no-link">No meeting link</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="padding: 15px;">No meetings scheduled for today.</p>
+                {% endif %}
+            </div>
+        </div>
       </div>
-    </div>
-    <script src="{% static 'js/staff/StaffDashboard.js' %}"></script>
-    {% endblock %}
+      <script src="{% static 'js/staff/StaffDashboard.js' %}"></script>
+      {% endblock %}
     </div>       
   </body>
 </html>
