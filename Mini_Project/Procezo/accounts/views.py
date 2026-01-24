@@ -1604,10 +1604,7 @@ def staff_dashboard(request):
     next_week = today + timedelta(days=7)
 
     # ------------ Attendance ------------
-    attendance = Attendance.objects.filter(
-        staff=staff,
-        date=today
-    ).first()
+    attendance = Attendance.objects.filter(staff=staff, date=today).first()
 
     # ------------ Birthday (this week) ------------
     birthday_this_week_count = Register.objects.filter(
@@ -1627,13 +1624,12 @@ def staff_dashboard(request):
     ).order_by('dob__month', 'dob__day')[:5]
 
     # ------------ Today's Meetings (by staff.job_type) ------------
-    todays_meets = GoogleMeet.objects.filter(
-        meet_time__date=today,
-        job_type=staff.job_type
-    ).order_by('meet_time')
+    todays_meets = GoogleMeet.objects.filter(meet_time__date=today, job_type=staff.job_type).order_by('meet_time')
 
     # ✔ Count meetings for this staff
     todays_meet_count = todays_meets.count()
+
+    tasks = WorkSchedule.objects.filter(staff=staff).order_by('-start_time')
 
     return render(
         request,
@@ -1645,7 +1641,12 @@ def staff_dashboard(request):
             'birthday_this_week_list': birthday_this_week_list,
             'upcoming_birthdays': upcoming_birthdays,
             'todays_meets': todays_meets,
-            'todays_meet_count': todays_meet_count,  # ✔ Added
+            'todays_meet_count': todays_meet_count,
+            'tasks': tasks,
+            'stats': {
+                "tasks_completed": tasks.filter(staff_response="Complete").count(),
+                "tasks_pending": tasks.filter(staff_response="Pending").count(),
+            }            
         }
     )
 
@@ -1761,14 +1762,9 @@ def staff_WorkSchedule(request):
     today = today_india()
     next_week = today + timedelta(days=7)
 
-    todays_meets = GoogleMeet.objects.filter(
-        meet_time__date=today,
-        job_type=staff.job_type
-    ).order_by('meet_time')
+    todays_meets = GoogleMeet.objects.filter(meet_time__date=today, job_type=staff.job_type).order_by('meet_time')
 
-    tasks = WorkSchedule.objects.filter(
-        staff=staff
-    ).order_by('-start_time')
+    tasks = WorkSchedule.objects.filter(staff=staff).order_by('-start_time')
 
     context = {
         'staff': staff,
@@ -1802,7 +1798,7 @@ def update_staff_response(request):
             return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
 
         task.staff_response = response
-        task.save(update_fields=["staff_response"]) # staff_response മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
+        task.save(update_fields=["staff_response"])
 
         return JsonResponse({"success": True})
 

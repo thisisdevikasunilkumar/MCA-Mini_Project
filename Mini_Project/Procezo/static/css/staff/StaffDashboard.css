@@ -780,11 +780,21 @@ body {
   transition: 0.2s;
 }
 
+.view-all a {
+  text-decoration: none;
+  color: inherit;
+}
+
 .view-all:hover {
   opacity: 0.85;
 }
 
 /* ===================== Tasks ===================== */
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .task-item {
   display: flex;
@@ -792,9 +802,10 @@ body {
   gap: 12px;
   padding: 16px;
   border-radius: 8px;
-  background: #f0f4f8;
+  background: #f8fafc;
   cursor: pointer;
   transition: all 0.2s;
+  border: 1px solid #e2e8f0;
 }
 
 .task-item:hover {
@@ -811,6 +822,15 @@ body {
   opacity: 0.6;
 }
 
+.task-item.completed .task-title {
+    text-decoration: line-through;
+    color: #888;
+}
+
+.task-checkbox.checked {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}
 /* ===================== Announcements ===================== */
 
 .announcement-item {
