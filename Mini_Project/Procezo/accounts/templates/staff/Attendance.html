@@ -37,8 +37,46 @@
     </div>
 
     <div class="card-header">
-      <h2>Weekly Attendance Records</h2>
+      <h2>
+        {% if request.GET.from_date %}
+          Filtered Attendance Records
+        {% else %}
+          Weekly Attendance Records
+        {% endif %}
+      </h2>
+      <p>Showing records from: {{ start_of_week|date:"M d" }} to Today</p>
     </div>
+    <form method="get" id="filterForm" class="filter-bar">
+      <div class="filter-group">
+        <label>Status</label>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All</option>
+          <option value="Active" {% if request.GET.status == "Active" %}selected{% endif %}>Active</option>
+          <option value="Inactive" {% if request.GET.status == "Inactive" %}selected{% endif %}>Inactive</option>
+          <option value="Late" {% if request.GET.status == "Late" %}selected{% endif %}>Late</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>From Date</label>
+        <input type="date" name="from_date" 
+              value="{{ request.GET.from_date }}" 
+              onchange="this.form.submit()">
+      </div>
+
+      <div class="filter-group">
+        <label>To Date</label>
+        <input type="date" name="to_date" 
+              value="{{ request.GET.to_date }}" 
+              onchange="this.form.submit()">
+      </div>
+      
+    {% if request.GET.status or request.GET.from_date or request.GET.to_date %}
+      <div class="filter-group action-group">
+        <a href="{% url 'accounts:staff_attendance' %}" class="clear-btn">Clear Filters</a>
+      </div>
+    {% endif %}
+    </form>
 
     <table class="data-table">
       <thead>
@@ -46,22 +84,17 @@
           <th>Date</th>
           <th>Check In</th>
           <th>Check Out</th>
-          <th>Overtime Hours</th>
+          <th>Overtime</th>
           <th>Status</th>
         </tr>
       </thead>
-
       <tbody>
         {% for record in attendance_records %}
         <tr>
           <td>{{ record.date|date:"Y-m-d" }}</td> 
-          
-          <td>{{ record.check_in|default:"--:--" }}</td>
-          
-          <td>{{ record.check_out|default:"--:--" }}</td>
-          
+          <td>{{ record.check_in|time:"H:i"|default:"--:--" }}</td>
+          <td>{{ record.check_out|time:"H:i"|default:"--:--" }}</td>
           <td>{{ record.overtime_hours|default:"00:00" }}</td>
-          
           <td>
             <span class="status-badge {{ record.status|lower }}">
               {{ record.status }}
@@ -70,7 +103,9 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="5">No attendance records found for this staff member.</td>
+          <td colspan="5" style="text-align: center; padding: 20px;">
+            No attendance records found for this selection.
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -80,10 +115,13 @@
         <h2>Monthly Attendance Calendar</h2>
     </div>
 
-    <p id="monthTitle"></p>
+    <div class="calendar-controls">
+        <select id="monthSelect"></select>
+        <select id="yearSelect"></select>
+    </div>
+
     <div class="calendar" id="attendanceCalendar"></div>
 
-    <!-- SAFE attendance JSON (prevents JS errors) -->
     {{ attendance_map|json_script:"attendance_json" }}
 
     <script>
