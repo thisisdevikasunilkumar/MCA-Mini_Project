@@ -173,50 +173,149 @@
   color: #92400e;
 }
 
-/* Calendar */
+.calendar-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+}
+
+#monthSelect, #yearSelect {
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e0;
+    background: white;
+    font-weight: 600;
+    color: #4a5568;
+    cursor: pointer;
+}
+
+/* Calendar Grid */
 .calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
 }
 
 .calendar-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem;
-  border-radius: 12px;
-  background: #f7fafc;
-  cursor: pointer;
-  transition: all 0.3s ease;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    border-radius: 12px;
+    background: #f7fafc;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .calendar-day:hover {
-  background: #ebf4ff;
-  transform: scale(1.05);
+    background: #ebf4ff;
+    transform: scale(1.05);
 }
 
-.calendar-day.present {
-  background: #d1fae5;
-}
-
-.calendar-day.absent {
-  background: #fee2e2;
-}
-
-.calendar-day.weekend {
-  background: #e2e8f0;
-}
+/* Attendance Colors */
+.calendar-day.present { background: #d1fae5; }
+.calendar-day.absent { background: #fee2e2; }
+.calendar-day.late { background: #fef3c7; }
+.calendar-day.weekend { background: #e2e8f0; }
 
 .day-number {
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
 }
 
 .day-label {
-  font-size: 0.7rem;
-  color: #718096;
+    font-size: 0.7rem;
+    color: #718096;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  padding: 15px 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.filter-group input {
+  height: 25px;
+  min-width: 160px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.filter-group select {
+  height: 38px;
+  min-width: 160px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.15);
+}
+
+/* Clear Filter Button Styling */
+.clear-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #f44336; /* Red color */
+    color: white !important;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.clear-btn:hover {
+    background-color: #d32f2f; /* Darker red on hover */
+    text-decoration: none;
+}
+
+.clear-btn:active {
+    transform: scale(0.98); /* Click effect */
+}
+
+/* Filter bar alignment fix */
+.filter-bar {
+    display: flex;
+    align-items: flex-end; /* Labels-nu thazhe button align cheyyan */
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.action-group {
+    margin-bottom: 5px; /* Alignment adjustment */
 }

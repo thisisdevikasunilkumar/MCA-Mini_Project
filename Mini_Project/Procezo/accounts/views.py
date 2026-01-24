@@ -1697,56 +1697,79 @@ def staff_profile(request):
 
 # Staff attendance view
 def staff_attendance(request):
-    # Imports like 'from django.shortcuts import render, get_object_or_404'
-    # and 'from django.utils import timezone' are assumed
-    
+    # 1. Basic Date Setup
     today = date.today()
+    start_of_week = today - timedelta(days=today.weekday())
     first_day_of_month = today.replace(day=1)
+    five_months_ago = today - timedelta(days=150)
 
-    staff = None
-    attendance_records = []
-    attendance_map = {}
-    
-    # Initialize counts
-    monthly_active_count = 0
-    monthly_inactive_count = 0
-    monthly_late_count = 0
-
+    # 2. Identify the Staff
     staff_id = request.session.get('staff_id')
+    if not staff_id:
+        # Redirect to login if session is missing
+        return redirect('login') 
+    
+    staff = get_object_or_404(Staff, staff_id=staff_id)
 
-    if staff_id:
-        # Fetch staff object
-        staff = get_object_or_404(Staff, staff_id=staff_id)
-        
-        # Filter attendance for the current month up to today
-        monthly_attendance = Attendance.objects.filter(
-            staff=staff,
-            date__gte=first_day_of_month,
+    # 3. Monthly Stats (For the Dashboard/Cards)
+    # This remains consistent regardless of the table filters
+    monthly_data = Attendance.objects.filter(
+        staff=staff,
+        date__gte=first_day_of_month,
+        date__lte=today
+    )
+    
+    monthly_active_count = monthly_data.filter(status='Active').count()
+    monthly_inactive_count = monthly_data.filter(status='Inactive').count()
+    monthly_late_count = monthly_data.filter(status='Late').count()
+    
+    all_attendance_data = Attendance.objects.filter(
+        staff=staff,
+        date__year__gte=2020,
+        date__year__lte=2030
+    )
+
+    attendance_map = {
+        record.date.strftime('%Y-%m-%d'): record.status 
+        for record in all_attendance_data
+    }
+
+    # 4. Filtering Logic for the Table
+    status_filter = request.GET.get('status')
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    # Start with all records for this specific staff
+    attendance_records = Attendance.objects.filter(staff=staff)
+
+    # Apply Date Range Filter
+    if from_date and to_date:
+        attendance_records = attendance_records.filter(
+            date__range=[from_date, to_date],
+            date__gte=five_months_ago  # Security limit
+        )
+    else:
+        # Default: Show current week's records
+        attendance_records = attendance_records.filter(
+            date__gte=start_of_week,
             date__lte=today
-        ).order_by('-check_in')
-        
-        # Calculate counts
-        monthly_active_count = monthly_attendance.filter(status='Active').count()
-        monthly_inactive_count = monthly_attendance.filter(status='Inactive').count()
-        monthly_late_count = monthly_attendance.filter(status='Late').count()
-        
-        # Set attendance records for the list view
-        attendance_records = monthly_attendance
-        
-        # Build dictionary: { day: "Status" } for calendar view
-        for record in monthly_attendance:
-            attendance_map[record.date.day] = record.status
-            
-    # Note: The 'else' block for staff_id not present is handled by the initial
-    # values (staff=None and counts=0)
-            
+        )
+
+    # Apply Status Filter (only if 'All' is not selected)
+    if status_filter:
+        attendance_records = attendance_records.filter(status=status_filter)
+
+    # Final ordering (Newest first)
+    attendance_records = attendance_records.order_by('-date')
+
     context = {
         'staff': staff,
-        'attendance_records': attendance_records,  # List of records (latest first)
-        'attendance_map': attendance_map,          # Map {day: status} for calendar
+        'attendance_records': attendance_records,
+        'attendance_map': attendance_map,
         'monthly_active_count': monthly_active_count,
         'monthly_inactive_count': monthly_inactive_count,
         'monthly_late_count': monthly_late_count,
+        'start_of_week': start_of_week,
     }
     
     return render(request, 'staff/Attendance.html', context)

@@ -12,7 +12,6 @@
 
 <div class="main">
   <div class="container">
-
     <h2>Emotion Tracking</h2>
     <p>Monitor emotion and wellbeing</p>
 
@@ -22,7 +21,6 @@
       </div>
 
       <div class="emotion-grid">
-
         <div class="emotion-card">
           <div class="emotion-icon">😄</div>
           <div class="emotion-label">Happy</div>
@@ -52,68 +50,65 @@
           <div class="emotion-icon">🤓</div>
           <div class="emotion-label">Focused</div>
         </div>
-
       </div>
     </div>
 
-<div>
-  <div class="card-header">
-    <h2>Recent Emotion Reports</h2>
-  </div>
+    <div>
+      <div class="card-header">
+        <h2>Recent Emotion Reports</h2>
+      </div>
 
-<table class="data-table">
-  <thead>
-    <tr>
-      <th>Staff ID</th>
-      <th>Staff Name</th>
-      <th>Date</th>
-      <th>Time</th>
-      <th>Emotion</th>
-      <th>Status</th>
-    </tr>
-  </thead>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Staff ID</th>
+            <th>Staff Name</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Emotion</th>
+            <th>Status</th>
+          </tr>
+        </thead>
 
-  <tbody>
-    {% for emo in all_emotions %}
-    <tr>
-      <td>{{ staff.staff_id }}</td>
-      <td>{{ staff.name }}</td>
+        <tbody>
+          {% for emo in all_emotions %}
+          <tr>
+            <td>{{ staff.staff_id }}</td>
+            <td>{{ staff.name }}</td>
 
-      <td>{{ emo.timestamp|date:"d-m-Y" }}</td>
-      <td>{{ emo.timestamp|time:"h:i A" }}</td>
+            <td>{{ emo.timestamp|date:"d-m-Y" }}</td>
+            <td>{{ emo.timestamp|time:"h:i A" }}</td>
 
-      <td>
-        {% if emo.emotion_type == "Happy" %}
-          😄 Happy
-        {% elif emo.emotion_type == "Sad" %}
-          😢 Sad
-        {% elif emo.emotion_type == "Neutral" %}
-          😐 Neutral
-        {% elif emo.emotion_type == "Angry" %}
-          😡 Angry
-        {% elif emo.emotion_type == "Tired" %}
-          😪 Tired
-        {% elif emo.emotion_type == "Focused" %}
-          🎯 Focused
-        {% endif %}
-      </td>
+            <td>
+              {% if emo.emotion_type == "Happy" %}
+                😄 Happy
+              {% elif emo.emotion_type == "Sad" %}
+                😢 Sad
+              {% elif emo.emotion_type == "Neutral" %}
+                😐 Neutral
+              {% elif emo.emotion_type == "Angry" %}
+                😡 Angry
+              {% elif emo.emotion_type == "Tired" %}
+                😪 Tired
+              {% elif emo.emotion_type == "Focused" %}
+                🎯 Focused
+              {% endif %}
+            </td>
 
-      <td>
-        {% if emo.emotion_type in "Happy Focused" %}
-          <span class="status-badge positive">Positive</span>
-        {% elif emo.emotion_type == "Neutral" %}
-          <span class="status-badge neutral">Neutral</span>
-        {% else %}
-          <span class="status-badge negative">Negative</span>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-
-</div>
+            <td>
+              {% if emo.emotion_type in "Happy Focused" %}
+                <span class="status-badge positive">Positive</span>
+              {% elif emo.emotion_type == "Neutral" %}
+                <span class="status-badge neutral">Neutral</span>
+              {% else %}
+                <span class="status-badge negative">Negative</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
     <div class="messages-section">
       <div class="messages-header">
@@ -195,7 +190,6 @@
 
       </div>
     </div>
-
   </div>
 </div>
 
