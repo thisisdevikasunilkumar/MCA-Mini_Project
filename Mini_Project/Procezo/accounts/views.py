@@ -1832,41 +1832,53 @@ def update_staff_response(request):
 
 # Staff emotion view
 def staff_emotion(request):
-    # 1) Logged-in staff
+    # 1) Logged-in staff id session-il ninnu edukunu
     staff_id = request.session.get('staff_id')
     if not staff_id:
         return render(request, 'staff/Emotion.html')
 
     staff = get_object_or_404(Staff, staff_id=staff_id)
-
-    # 2) Fetch ALL emotions of this staff (latest first)
-    all_emotions = Emotion.objects.filter(staff=staff).order_by('-timestamp')
-
-    # 3) Today's emotion counts
     today = date.today()
-    emotions_today = all_emotions.filter(timestamp__date=today)
 
+    # 2) Stat cards-il kaanikkan vendi TODAY'S counts mathram edukunu
+    emotions_today_query = Emotion.objects.filter(staff=staff, timestamp__date=today)
+    
     emotion_counts = {
-        "Happy": emotions_today.filter(emotion_type="Happy").count(),
-        "Sad": emotions_today.filter(emotion_type="Sad").count(),
-        "Neutral": emotions_today.filter(emotion_type="Neutral").count(),
-        "Angry": emotions_today.filter(emotion_type="Angry").count(),
-        "Tired": emotions_today.filter(emotion_type="Tired").count(),
-        "Focused": emotions_today.filter(emotion_type="Focused").count(),
+        "Happy": emotions_today_query.filter(emotion_type="Happy").count(),
+        "Sad": emotions_today_query.filter(emotion_type="Sad").count(),
+        "Neutral": emotions_today_query.filter(emotion_type="Neutral").count(),
+        "Angry": emotions_today_query.filter(emotion_type="Angry").count(),
+        "Tired": emotions_today_query.filter(emotion_type="Tired").count(),
+        "Focused": emotions_today_query.filter(emotion_type="Focused").count(),
     }
 
-    # 4) Feedback
-    feedback_list = Feedback.objects.filter(staff=staff).order_by('-created_at')
-    feedback_count = feedback_list.count()
+    # 3) Table-ile data (Filtering logic ivide aanu)
+    # Default aayi ee staff-inte ella data-yum edukkunnu
+    all_emotions = Emotion.objects.filter(staff=staff).order_by('-timestamp')
 
-    # 5) Send data to template
+    # URL-il ninnu filter parameters edukkunu
+    status_q = request.GET.get('status', '').strip()
+    date_q = request.GET.get('date', '').strip()
+
+    # Status filter apply cheyyunnu
+    if status_q:
+        all_emotions = all_emotions.filter(emotion_type=status_q)
+
+    # Date filter apply cheyyunnu
+    if date_q:
+        all_emotions = all_emotions.filter(timestamp__date=date_q)
+
+    # 4) Feedback details
+    feedback_list = Feedback.objects.filter(staff=staff).order_by('-created_at')
+
     context = {
         'staff': staff,
         'emotion_counts': emotion_counts,
-        'emotions_today': emotions_today,
-        'all_emotions': all_emotions,      # 👈 important
-        'feedback_count': feedback_count,
+        'all_emotions': all_emotions,
+        'feedback_count': feedback_list.count(),
         'feedback_list': feedback_list,
+        'selected_status': status_q,
+        'selected_date': date_q,
     }
 
     return render(request, 'staff/Emotion.html', context)

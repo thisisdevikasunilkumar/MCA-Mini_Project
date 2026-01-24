@@ -53,63 +53,6 @@
       </div>
     </div>
 
-    <div>
-      <div class="card-header">
-        <h2>Recent Emotion Reports</h2>
-      </div>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Staff ID</th>
-            <th>Staff Name</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Emotion</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for emo in all_emotions %}
-          <tr>
-            <td>{{ staff.staff_id }}</td>
-            <td>{{ staff.name }}</td>
-
-            <td>{{ emo.timestamp|date:"d-m-Y" }}</td>
-            <td>{{ emo.timestamp|time:"h:i A" }}</td>
-
-            <td>
-              {% if emo.emotion_type == "Happy" %}
-                😄 Happy
-              {% elif emo.emotion_type == "Sad" %}
-                😢 Sad
-              {% elif emo.emotion_type == "Neutral" %}
-                😐 Neutral
-              {% elif emo.emotion_type == "Angry" %}
-                😡 Angry
-              {% elif emo.emotion_type == "Tired" %}
-                😪 Tired
-              {% elif emo.emotion_type == "Focused" %}
-                🎯 Focused
-              {% endif %}
-            </td>
-
-            <td>
-              {% if emo.emotion_type in "Happy Focused" %}
-                <span class="status-badge positive">Positive</span>
-              {% elif emo.emotion_type == "Neutral" %}
-                <span class="status-badge neutral">Neutral</span>
-              {% else %}
-                <span class="status-badge negative">Negative</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
     <div class="messages-section">
       <div class="messages-header">
           <h3>📩 Messages from Admin</h3>
@@ -190,9 +133,92 @@
 
       </div>
     </div>
+
+    <div>
+      <div class="card-header">
+        <h2>Recent Emotion Reports</h2>
+      </div>
+
+      <form method="get" id="filterForm" class="filter-bar">
+        <div class="filter-group">
+          <label>Status</label>
+          <select name="status" onchange="this.form.submit()">
+            <option value="">All Emotions</option>
+            <option value="Happy" {% if selected_status == "Happy" %}selected{% endif %}>Happy</option>
+            <option value="Sad" {% if selected_status == "Sad" %}selected{% endif %}>Sad</option>
+            <option value="Neutral" {% if selected_status == "Neutral" %}selected{% endif %}>Neutral</option>
+            <option value="Angry" {% if selected_status == "Angry" %}selected{% endif %}>Angry</option>
+            <option value="Tired" {% if selected_status == "Tired" %}selected{% endif %}>Tired</option>
+            <option value="Focused" {% if selected_status == "Focused" %}selected{% endif %}>Focused</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Date</label>
+          <input type="date" name="date" 
+                value="{{ selected_date }}" 
+                onchange="this.form.submit()">
+        </div>
+
+        {% if selected_status or selected_date %}
+          <div class="filter-group action-group">
+            <a href="{% url 'accounts:staff_emotion' %}" class="clear-btn">Clear Filters</a>
+          </div>
+        {% endif %}
+      </form>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Staff ID</th>
+            <th>Staff Name</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Emotion</th>
+            <th>Status Type</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for emo in all_emotions %}
+          <tr>
+            <td>{{ staff.staff_id }}</td>
+            <td>{{ staff.name }}</td>
+            <td>{{ emo.timestamp|date:"d-m-Y" }}</td>
+            <td>{{ emo.timestamp|time:"h:i A" }}</td>
+
+            <td>
+              {% if emo.emotion_type == "Happy" %} 😄 Happy
+              {% elif emo.emotion_type == "Sad" %} 😢 Sad
+              {% elif emo.emotion_type == "Neutral" %} 😐 Neutral
+              {% elif emo.emotion_type == "Angry" %} 😡 Angry
+              {% elif emo.emotion_type == "Tired" %} 😪 Tired
+              {% elif emo.emotion_type == "Focused" %} 🎯 Focused
+              {% endif %}
+            </td>
+
+            <td>
+              {% if emo.emotion_type == "Happy" or emo.emotion_type == "Focused" %}
+                <span class="status-badge positive">Positive</span>
+              {% elif emo.emotion_type == "Neutral" %}
+                <span class="status-badge neutral">Neutral</span>
+              {% else %}
+                <span class="status-badge negative">Negative</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center;">No records found for the selected filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <script src="{% static 'js/staff/Emotion.js' %}"></script>
 <script src="{% static 'js/staff/StaffDashboard.js' %}"></script>
+
 {% endblock %}
