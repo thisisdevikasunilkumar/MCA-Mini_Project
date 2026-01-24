@@ -1755,57 +1755,61 @@ def staff_WorkSchedule(request):
     staff_id = request.session.get('staff_id')
     if not staff_id:
         return redirect('accounts:login_register')
-    
+
     staff = get_object_or_404(Staff, staff_id=staff_id)
 
     today = today_india()
     next_week = today + timedelta(days=7)
 
-    # ------------ Today's Meetings (by staff.job_type) ------------
     todays_meets = GoogleMeet.objects.filter(
         meet_time__date=today,
         job_type=staff.job_type
     ).order_by('meet_time')
 
-    # ✔ Count meetings for this staff
-    todays_meet_count = todays_meets.count()
-
-    # Stats
-    stats = {
-        "meeting_today": todays_meets.count(),
-        "total_hours": 0,
-        "tasks_completed": 0
-    }
-
-    tasks = WorkSchedule.objects.filter(staff=staff).order_by('-start_time')
+    tasks = WorkSchedule.objects.filter(
+        staff=staff
+    ).order_by('-start_time')
 
     context = {
         'staff': staff,
         'todays_meets': todays_meets,
-        'todays_meet_count': todays_meet_count,
-        'stats': stats,
+        'todays_meet_count': todays_meets.count(),
         'tasks': tasks,
+        'stats': {
+            "meeting_today": todays_meets.count(),
+            "total_hours": 0,
+            "tasks_completed": tasks.filter(staff_response="Complete").count()
+        }
     }
 
     return render(request, 'staff/Staff Work Schedule.html', context)
+
 
 @require_POST
 def update_staff_response(request):
     schedule_id = request.POST.get("schedule_id")
     response = request.POST.get("response")
-
-    if not schedule_id or not response:
-        return JsonResponse({"success": False})
-    task = get_object_or_404(WorkSchedule, schedule_id=schedule_id)
-
     staff_id = request.session.get('staff_id')
-    if not staff_id or task.staff.staff_id != staff_id:
-        return JsonResponse({"success": False})
 
-    task.staff_response = response
-    task.save(update_fields=["staff_response", "updated_at"])
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "Session expired. Please login again."}, status=401)
 
-    return JsonResponse({"success": True})
+    try:
+        task = WorkSchedule.objects.get(schedule_id=schedule_id)
+
+        # Security Check
+        if str(task.staff.staff_id) != str(staff_id):
+            return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
+
+        task.staff_response = response
+        task.save(update_fields=["staff_response"]) # staff_response മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
+
+        return JsonResponse({"success": True})
+
+    except WorkSchedule.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Task not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 # Staff emotion view
 def staff_emotion(request):

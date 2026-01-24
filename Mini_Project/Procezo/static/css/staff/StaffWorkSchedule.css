@@ -242,10 +242,18 @@
   color: #444;
 }
 
-.task-content span {
-  font-size: 13px;
-  color: #555;
+.task-date {
+  display: inline-flex;
+  gap: 6px;
+  color: red;
+  font-size: 14px;
 }
+
+.to-text {
+  font-weight: 500;
+  color: #444;
+}
+
 
 /* ===== STATUS DROPDOWN ===== */
 .status-wrapper {
@@ -274,12 +282,12 @@
 /* Dropdown Box */
 .status-dropdown {
   position: absolute;
-  top: 48px;
+  bottom: 52px;
   right: 0;
   width: 170px;
   background: #ffffff;
   border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  box-shadow: 0 -12px 30px rgba(0,0,0,0.12); 
   list-style: none;
   padding: 8px 0;
   display: none;
@@ -321,7 +329,6 @@
 /* Caret rotate */
 .status-wrapper.active .caret {
   transform: rotate(180deg);
-  display: inline-block;
 }
 
 
@@ -360,26 +367,28 @@
   font-size: 12px;
   font-weight: 600;
   display: inline-block;
+  text-align: center;
+  min-width: 80px;
+  background: #c3dde8;
+  color: #01579b;  
 }
 
-/* Status Colors */
+/* Pending */
 .status-badge.pending {
   background: #fee2e2;
   color: #dc2626;
 }
 
-.status-badge.in\ progress {
+/* In Progress */
+.status-badge.in-progress {
   background: #fef3c7;
   color: #d97706;
 }
 
+/* Complete */
 .status-badge.complete {
   background: #dcfce7;
   color: #16a34a;
-}
-.status-badge.pending {
-  background: #fee2e2;
-  color: #dc2626;
 }
 
 /* Notification styles */
