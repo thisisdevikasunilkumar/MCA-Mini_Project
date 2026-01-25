@@ -959,6 +959,12 @@ def work_schedules_page(request):
 
 
 
+# Admin key logs management view
+def admin_KeyLogs_management(request):
+    return render(request, 'admin/Key Logs Management.html')
+
+
+
 # Admin emotion management view
 def admin_emotion_management(request):
     today = date.today()
