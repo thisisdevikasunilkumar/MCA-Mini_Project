@@ -48,7 +48,7 @@
           <ul class="menu">
             <li><a href="{% url 'accounts:staff_attendance' %}"><img src="{% static 'image/dashboard/Attendance.png' %}" alt="Attendance" class="icon" /><span>Attendance</span></a></li>
             <li><a href="{% url 'accounts:staff_work_schedule' %}"><img src="{% static 'image/dashboard/work schedule.png' %}" alt="Work Schedule" class="icon" /><span>Work Schedule</span></a></li>
-            <li><a href="#"><img src="{% static 'image/dashboard/key logs.png' %}" alt="Key Logs" class="icon" /><span>Key Logs</span></a></li>
+            <li><a href="{% url 'accounts:staff_KeyLogs' %}"><img src="{% static 'image/dashboard/key logs.png' %}" alt="Key Logs" class="icon" /><span>Key Logs</span></a></li>
             <li><a href="{% url 'accounts:staff_emotion' %}"><img src="{% static 'image/dashboard/Emotion.png' %}" alt="Emotion" class="icon" /><span>Emotion</span></a></li>
             <!-- <li><a href="#"><img src="{% static 'image/dashboard/Salary.png' %}" alt="Salary" class="icon" /><span>Salary</span></a></li> -->
           </ul>
