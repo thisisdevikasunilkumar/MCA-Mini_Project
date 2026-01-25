@@ -34,12 +34,7 @@ urlpatterns = [
     path('adminAttendanceManagement/', views_admin.admin_attendance_management, name='admin_attendance_management'),
     path('save-attendanceTime/', views_admin.save_attendanceTime_to_staff, name='save_attendanceTime'),
     
-    path('adminEmotionManagement/', views_admin.admin_emotion_management, name='admin_emotion_management'),
-    path('ajax/submit-feedback/', views_admin.ajax_submit_feedback, name='ajax_submit_feedback'),
-    path('ajax/submit-issue/', views_admin.submit_issue, name='submit_issue'),
-
-    path('admin/work_schedules/', views_admin.admin_work_schedule_list, name='admin_work_schedule_list'),
-    
+    path('admin/work_schedules/', views_admin.admin_work_schedule_list, name='admin_work_schedule_list'),   
     # --- API ENDPOINTS --
     # GET: Get all events (for calendar refresh)
     path('admin/work_schedules/api/events/', views_admin.work_schedules_json, name='work_schedules_json'), 
@@ -49,6 +44,13 @@ urlpatterns = [
     path('admin/work_schedules/api/update/<int:pk>/', views_admin.work_schedule_update, name='work_schedule_update'),    
     # POST: Delete a schedule (pk is the schedule_id)
     path('admin/work_schedules/api/delete/<int:pk>/', views_admin.work_schedule_delete, name='work_schedule_delete'),
+
+    path('adminEmotionManagement/', views_admin.admin_emotion_management, name='admin_emotion_management'),
+    path('ajax/submit-feedback/', views_admin.ajax_submit_feedback, name='ajax_submit_feedback'),
+    path('ajax/submit-issue/', views_admin.submit_issue, name='submit_issue'),
+
+    path('adminKeyLogsManagement/', views_admin.admin_KeyLogs_management, name='admin_KeyLogs_management'),
+  
     
     # ..............................................................
     # -------------------- Staff Dashboard URLs --------------------
@@ -59,6 +61,7 @@ urlpatterns = [
     path('staffAttendance/', views_staff.staff_attendance, name='staff_attendance'),
     path('staffWorkSchedule/', views_staff.staff_WorkSchedule, name='staff_work_schedule'),
     path('update-staff-response/', views_staff.update_staff_response, name='update_staff_response'),
+    path('staffKeyLogs/', views_staff.staff_KeyLogs, name='staff_KeyLogs'),
     path('staffEmotion/', views_staff.staff_emotion, name='staff_emotion'),
     path('save-reply/', views_staff.save_admin_reply, name='save_admin_reply'),
     path('staff/record-emotion/', views_staff.record_emotion, name='record_emotion'),
