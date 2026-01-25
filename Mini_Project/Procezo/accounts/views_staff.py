@@ -281,6 +281,21 @@ def update_staff_response(request):
 
 
 
+# Staff key logs management view
+def staff_KeyLogs(request):
+    staff_id = request.session.get('staff_id')
+    if not staff_id:
+        return redirect('accounts:login_register')
+
+    staff = get_object_or_404(Staff, staff_id=staff_id)
+
+    context = {
+        'staff': staff,
+    }
+
+    return render(request, 'staff/Key Logs.html', context)
+
+
 
 # Staff emotion view
 def staff_emotion(request):
