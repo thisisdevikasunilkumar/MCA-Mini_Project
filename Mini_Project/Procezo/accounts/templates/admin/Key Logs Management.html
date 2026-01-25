@@ -1,0 +1,22 @@
+{% extends 'admin/Admin Dashboard.html' %}
+{% load static %}
+
+{% block title %}Key Logs Management{% endblock %}
+
+{% block extrastyle %}
+<!-- Dashboard base CSS -->
+<link rel="stylesheet" href="{% static 'css/admin/AdminDashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<!-- Include additional CSS -->
+<link rel="stylesheet" href="{% static 'css/admin/KeyLogsManagement.css' %}" />
+<!-- Emotion Page -->
+<div class="main">
+    <div class="container">
+        <h2>Key Logs Management</h2>
+        <p>Track access and key activities of staff members</p>
+    </div>
+</div>
+
+{% endblock %}
