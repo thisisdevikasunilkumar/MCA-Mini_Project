@@ -46,6 +46,38 @@ https://www.figma.com/design/nObz93WhgZg4kcEYnxP071/Procezo?node-id=0-1&t=mtfQqJ
 
 ---
 
+## 🔐 Environment Variables Configuration
+
+This project uses a `.env` file to store **sensitive information** such as secret keys and database credentials.
+
+⚠️ The `.env` file is **not included in the Git repository** for security reasons.
+
+### 📁 `.env` File Location
+
+Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mini_Project\.env**:
+
+### 📝 Steps to Create `.env`
+
+1. **Create a new file named `.env`**
+2. **Add the following values:**
+
+   ```env
+   SECRET_KEY=your_django_secret_key
+   DEBUG=True
+
+   DB_NAME=your_database_name
+   DB_USER=your_database_username
+   DB_PASSWORD=your_database_password
+   DB_HOST=localhost
+   DB_PORT=3306
+
+   EMAIL_HOST_USER=example@gmail.com
+   EMAIL_HOST_PASSWORD=app_pasword
+
+3. **Save the file before running the project.**
+
+---
+
 ## ⚙️ Installation & Setup
 
 1. **Clone the Repository**
