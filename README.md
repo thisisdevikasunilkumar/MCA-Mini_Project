@@ -54,7 +54,7 @@ This project uses a `.env` file to store **sensitive information** such as secre
 
 ### 📁 `.env` File Location
 
-Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mini_Project\.env**:
+Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mini_Project\\..env**:
 
 ### 📝 Steps to Create `.env`
 
