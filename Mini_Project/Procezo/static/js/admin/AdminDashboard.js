@@ -240,3 +240,83 @@ function getCookie(name) {
   }
   return cookieValue;
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+  // 1. EMOTION CHART (Doughnut)
+  const canvas = document.getElementById("emotionChart");
+  if (!canvas || !window.EMOTION_DATA) return;
+
+  const ctx = canvas.getContext("2d");
+
+  new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Happy", "Focused", "Neutral", "Angry", "Sad", "Tired"],
+      datasets: [{
+        data: [
+          EMOTION_DATA.happy,
+          EMOTION_DATA.focused,
+          EMOTION_DATA.neutral,
+          EMOTION_DATA.angry,
+          EMOTION_DATA.sad,
+          EMOTION_DATA.tired
+        ],
+        backgroundColor: [
+          "#008000",  // Happy
+          "#19ABB6",  // Focused
+          "#9ca3af",  // Neutral
+          "#FF0000",  // Angry
+          "#6F517A",  // Sad
+          "#FF8800"   // Tired
+        ],
+        borderColor: "#ffffff",
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: "65%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 18,
+            padding: 16,
+            font: {
+              size: 14
+            }
+          }
+        },
+        tooltip: {
+          enabled: true
+        }
+      }
+    }
+  });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  // 2. PRODUCTIVITY CHART (Line)
+  const ctxProd = document.getElementById('productivityChart').getContext('2d');
+  new Chart(ctxProd, {
+    type: 'line',
+    data: {
+      labels: window.PRODUCTIVITY_DATA.labels,
+      datasets: [{
+        label: 'Efficiency %',
+        data: window.PRODUCTIVITY_DATA.values,
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, max: 100 }
+      }
+    }
+  });
+});

@@ -406,6 +406,11 @@ stat-label {
   transition: 0.2s;
 }
 
+.view-all a {
+  text-decoration: none;
+  color: inherit;
+}
+
 .view-all:hover {
   opacity: 0.85;
 }
@@ -530,7 +535,14 @@ stat-label {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   transition: all 0.2s ease;
+}
+
+.action-btn a {
+  color: #ffffff;
+  cursor: pointer;
+  text-decoration: none;
 }
 
 .action-btn:hover {

@@ -79,7 +79,7 @@
           </div>
 
           <div class="message-actions">
-            <button class="reply-btn" onclick="toggleReply({{ f.feedback_id }})">
+            <button class="reply-btn" onclick="toggleReply('{{ f.feedback_id }}')">
               💬 Reply to Admin
             </button>
           </div>
@@ -88,10 +88,10 @@
             <textarea class="reply-textarea" id="reply-textarea-{{ f.feedback_id }}" placeholder="Type your response to admin here...">{{ f.current_problem }}</textarea>
 
             <div class="reply-actions">
-              <button class="send-reply-btn" onclick="sendReply({{f.feedback_id }})">
+              <button class="send-reply-btn" onclick="sendReply('{{f.feedback_id }}')">
                 ✉️ Send Reply
               </button>
-              <button class="cancel-reply-btn" onclick="cancelReply({{f.feedback_id }})">Cancel</button>
+              <button class="cancel-reply-btn" onclick="cancelReply('{{f.feedback_id }}')">Cancel</button>
             </div>
 
             <div class="success-message" id="success-message-{{ f.feedback_id }}">
