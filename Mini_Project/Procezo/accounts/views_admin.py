@@ -16,6 +16,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
 from datetime import datetime, timedelta, time as dtime
+from django.db.models import Count, Avg
 from django.utils.dateparse import parse_date, parse_time
 from django.middleware.csrf import get_token
 from django.core.serializers.json import DjangoJSONEncoder
@@ -87,6 +88,43 @@ def admin_dashboard(request):
     late_count = Attendance.objects.filter(date=today, status='Late').count()
     
     register_list = Register.objects.select_related("staff").all()
+
+    # ---------------------------------------------
+    # EMOTION COUNTS (CURRENT WEEK)
+    # ---------------------------------------------
+    week_start = today - timedelta(days=today.weekday())   # Monday
+    week_end = week_start + timedelta(days=6)              # Sunday
+
+    emotion_qs = (
+        Emotion.objects
+        .filter(timestamp__date__range=(week_start, week_end))
+        .values('emotion_type')
+        .annotate(count=Count('emotion_type'))
+    )
+
+    emotion_data = {
+        'Happy': 0,
+        'Focused': 0,
+        'Neutral': 0,
+        'Angry': 0,
+        'Sad': 0,
+        'Tired': 0,
+    }
+
+    for e in emotion_qs:
+        emotion_data[e['emotion_type']] = e['count']
+
+    # ---------------------------------------------
+    # PRODUCTIVITY DATA (Last 7 Days Aggregation)
+    # ---------------------------------------------
+    prod_labels = []
+    prod_values = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        avg_score = Productivity.objects.filter(datetime__date=day).aggregate(Avg('productivity_score'))['productivity_score__avg'] or 0
+        prod_labels.append(day.strftime('%a')) # 'Mon', 'Tue' etc.
+        prod_values.append(round(float(avg_score), 2))
+
     # ---------------------------------------------
     # CONTEXT
     # ---------------------------------------------
@@ -104,6 +142,11 @@ def admin_dashboard(request):
         },
         "register_list": register_list,
         "todays_meetings": todays_meetings,
+        'emotion_data': emotion_data,
+        'productivity_data': {
+            'labels': prod_labels,
+            'values': prod_values
+        }
     }
     return render(request, 'admin/Admin Dashboard.html', context)
 
@@ -1084,10 +1127,10 @@ def admin_emotion_management(request):
 
         latest_productivity = (
             Productivity.objects.filter(staff=staff)
-            .order_by('-date')
+            .order_by('-datetime')
             .first()
             if filters_applied else
-            Productivity.objects.filter(staff=staff, date=today).first()
+            Productivity.objects.filter(staff=staff, datetime__date=today).first()
         )
 
         latest_feedback = (
