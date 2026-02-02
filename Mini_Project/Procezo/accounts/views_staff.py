@@ -13,7 +13,7 @@ from django.db.models import Q
 from datetime import timedelta
 from .models import Staff, Register, Attendance, GoogleMeet, WorkSchedule, Emotion, Feedback, IssueReport, Productivity
 # Import the utility function
-from .utils import detect_emotion_from_base64_image 
+from .utils import verify_face_with_embedding, detect_emotion_from_base64_image
 
 # ---------------- Timezone helpers ----------------
 INDIA_TZ = pytz.timezone("Asia/Kolkata")
@@ -376,59 +376,40 @@ def save_admin_reply(request):
 
 @require_POST
 def record_emotion(request):
+    # 1. Check the login status
     staff_id = request.session.get('staff_id')
-    
+    if not staff_id:
+        return JsonResponse({'status': 'error', 'message': 'Session expired'}, status=401)
+
     try:
-        if request.content_type != 'application/json':
-            return JsonResponse({'status': 'error', 'message': 'Invalid Content-Type'}, status=400)
-
         data = json.loads(request.body)
+        image_b64 = data.get('image', '')
+
+        # 2. Check the time (1-hour gap)
+        one_hour_ago = timezone.now() - timedelta(hours=1)
+        if Emotion.objects.filter(staff__staff_id=staff_id, timestamp__gte=one_hour_ago).exists():
+            return JsonResponse({'status': 'skipped', 'message': 'Next update in 1 hour'})
+
+        # 3. Ensure the same staff member is logged in
+        reg_user = Register.objects.get(staff__staff_id=staff_id)
+        if not verify_face_with_embedding(image_b64, reg_user.face_embedding):
+            return JsonResponse({'status': 'error', 'message': 'Face verification failed'}, status=403)
+
+        # 4. Detect the emotion and save it
+        emotion_result = detect_emotion_from_base64_image(image_b64)
         
-        # Fallback staff_id logic (if session is missing, check payload)
-        if not staff_id:
-            staff_id = data.get('staff_id') or data.get('staffId')
-
-        full_image_data = data.get('image', '')
-        base64_image = full_image_data.split(',')[1] if ',' in full_image_data else full_image_data
-
-    except (json.JSONDecodeError, IndexError, AttributeError) as e:
-        return JsonResponse({'status': 'error', 'message': f'Invalid image data: {e}'}, status=400)
-
-    # 1. Detect emotion
-    detected_emotion = detect_emotion_from_base64_image(base64_image)
-
-    print(f"record_emotion called: staff_id={staff_id} detected_emotion={detected_emotion}")
-
-    if detected_emotion: 
-        try:
-            if not staff_id:
-                return JsonResponse({'status': 'error', 'message': 'Staff not identified'}, status=401)
-
-            staff = get_object_or_404(Staff, staff_id=staff_id) # Use get_object_or_404 for cleaner code
-            
-            # Timestamp calculation (assuming now_india and INDIA_TZ are defined elsewhere)
-            # Use timezone.now() if you rely on Django's USE_TZ=True settings
-            store_ts = timezone.now()
-            
-            print(f"Attempting to save emotion: staff={staff_id}, emotion={detected_emotion}, ts={store_ts}")
-
-            obj = Emotion.objects.create(
-                staff=staff,
-                emotion_type=detected_emotion,
-                timestamp=store_ts
+        if emotion_result:
+            staff_obj = get_object_or_404(Staff, staff_id=staff_id)
+            Emotion.objects.create(
+                staff=staff_obj,
+                emotion_type=emotion_result,
+                timestamp=timezone.now()
             )
+            return JsonResponse({'status': 'success', 'emotion': emotion_result})
+        
+        return JsonResponse({'status': 'error', 'message': 'Detection failed'})
 
-            print(f"Saved emotion record: id={obj.emotion_id}, emotion={obj.emotion_type}")
-
-            return JsonResponse({'status': 'success', 'emotion': detected_emotion, 'id': obj.emotion_id, 'timestamp': str(obj.timestamp)})
-
-        except Staff.DoesNotExist:
-            print(f"record_emotion error: Staff not found for staff_id={staff_id}")
-            return JsonResponse({'status': 'error', 'message': 'Staff not found'}, status=404)
-        except Exception as e:
-            print(f"Database save error: {e}")
-            return JsonResponse({'status': 'error', 'message': 'Could not save emotion', 'error': str(e)}, status=500)
-    else:
-        # Returns info if detection failed (returned None)
-        msg = 'Emotion detection failed on frame (returned None).'
-        return JsonResponse({'status': 'info', 'message': msg, 'detected_emotion': detected_emotion}, status=200)
+    except Register.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'User not registered'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
