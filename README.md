@@ -92,13 +92,12 @@ Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mi
 
 3. **Create & Activate Virtual Environment**
    - Create a virtual environment using Python 3.10:
-   ```bash
-   py -3.10 -m venv env1
-   
-- Activate the virtual environment:
-  ```bash
-   env1\Scripts\activate
-   
+     ```bash
+     py -3.10 -m venv env1
+
+   - Activate the virtual environment:
+     ```bash
+     env1\Scripts\activate
 4. **Upgrade pip**
    ```bash
     python -m pip install --upgrade pip
@@ -127,12 +126,12 @@ Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mi
 
 8. **Create Database Before Migration**
    ```bash
-     CREATE DATABASE database_name;
+   CREATE DATABASE database_name;
    
 9. **Run Migrations**
    ```bash
-     python manage.py makemigrations
-     python manage.py migrate
+   python manage.py makemigrations
+   python manage.py migrate
 
 10. **Start the Server**
     ```bash
@@ -140,9 +139,8 @@ Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mi
 
 11. **Access the Application**
    - Open your browser and visit:
-
-    ```bash
-     http://127.0.0.1:8000/
+     ```bash
+      http://127.0.0.1:8000/
 
 ---
 ## 🔐 Initial Login & User Management
