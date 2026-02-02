@@ -214,16 +214,26 @@ class Emotion(models.Model):
 
     def __str__(self):
         return f"{self.staff} - {self.emotion_type} @ {self.timestamp}"
-    
+
+
+# ==============================================
+#   6) Productivity Model
+# ==============================================    
 class Productivity(models.Model):
-    productvity_id = models.AutoField(primary_key=True)
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='productivities')
-    score_percent = models.PositiveSmallIntegerField(help_text="0-100")
-    date = models.DateField(default=timezone.now)
+    productivity_id = models.AutoField(primary_key=True)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="productivity_records")
+    datetime = models.DateTimeField(default=timezone.now)
+    keystroke = models.IntegerField(default=0, help_text="Total number of keystrokes")
+    mouse_moves = models.IntegerField(default=0, help_text="Total mouse movements or clicks")
+    productivity_score = models.DecimalField(default=0.0, max_digits=6, decimal_places=2, help_text="Calculated productivity score")
 
     def __str__(self):
-        return f"{self.staff} - {self.score_percent}% @ {self.date}"
+        return f"Productivity {self.productivity_id} - Staff {self.staff.staff_id}"
 
+
+# ==============================================
+#   7) Feedback Model
+# ==============================================  
 class Feedback(models.Model):
     feedback_id = models.AutoField(primary_key=True)
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="feedbacks")
@@ -234,6 +244,9 @@ class Feedback(models.Model):
         return f"{self.staff.name} - {self.message[:20]}"
 
 
+# ==============================================
+#   8) IssueReport Model
+# ==============================================  
 class IssueReport(models.Model):
     issue_id = models.AutoField(primary_key=True)
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='issues')
