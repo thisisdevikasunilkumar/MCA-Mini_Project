@@ -84,14 +84,33 @@ Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mi
    ```bash
    git clone https://github.com/thisisdevikasunilkumar/MCA---Mini_Project.git
 
-2. **Install Required Packages**
+2. **Check Python Version**
+   - Make sure Python 3.10 is installed on your system.
+   ```bash
+   python --version
+   py --list
+
+3. **Create & Activate Virtual Environment**
+   - Create a virtual environment using Python 3.10:
+   ```bash
+   py -3.10 -m venv env1
+   
+- Activate the virtual environment:
+  ```bash
+   env1\Scripts\activate
+   
+4. **Upgrade pip**
+   ```bash
+    python -m pip install --upgrade pip
+   
+5. **Install Required Packages**
    ```bash
     python -m pip install -r requirements.txt
 
-3. **Set Up the Database**
+6. **Set Up the Database**
    - Import the provided `.sql` file into **MySQL**.
 
-4. **Configure Django**
+7. **Configure Django**
    - Open `settings.py` and update the database configuration:
      
    ```bash
@@ -106,23 +125,23 @@ Create the `.env` file inside the **project root directory - MCA-Mini_Project\Mi
      }
    }
 
-5. **Create Database Before Migration**
+8. **Create Database Before Migration**
    ```bash
      CREATE DATABASE database_name;
    
-6. **Run Migrations**
+9. **Run Migrations**
    ```bash
      python manage.py makemigrations
      python manage.py migrate
 
-7. **Start the Server**
-   ```bash
-    python manage.py runserver
+10. **Start the Server**
+    ```bash
+     python manage.py runserver
 
-8. **Access the Application**
+11. **Access the Application**
    - Open your browser and visit:
-     
-   ```bash
+
+    ```bash
      http://127.0.0.1:8000/
 
 ---
